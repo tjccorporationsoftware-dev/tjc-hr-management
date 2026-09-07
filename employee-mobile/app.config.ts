@@ -114,6 +114,17 @@ const config: ExpoConfig = {
     infoPlist: {
       // แอปทำงานกับ session ของบริษัท ไม่ควรถูกดักอ่านกลางทาง
       NSAllowsArbitraryLoads: false,
+      /*
+       * ประกาศว่าไม่ได้ใช้การเข้ารหัสนอกเหนือจากที่ได้รับยกเว้น
+       *
+       * แอปเข้ารหัสแค่สองทาง: HTTPS ตอนคุยกับเซิร์ฟเวอร์ และ Keychain ของ
+       * ระบบตอนเก็บโทเคน ทั้งคู่อยู่ในข้อยกเว้นมาตรฐานของ Apple
+       *
+       * ถ้าไม่ประกาศไว้ตรงนี้ ทุกครั้งที่อัปไฟล์ขึ้น TestFlight มันจะขึ้น
+       * "Missing Compliance" แล้วผู้ทดสอบเปิดใช้ไม่ได้จนกว่าจะมีคนเข้าไปตอบ
+       * คำถามเรื่องการเข้ารหัสด้วยมือใน App Store Connect ทุกรอบ
+       */
+      ITSAppUsesNonExemptEncryption: false,
       CFBundleAllowMixedLocalizations: true,
       /* ชื่อใต้ไอคอนบนหน้าจอ iOS — สั้นกว่าชื่อในสโตร์โดยตั้งใจ */
       CFBundleDisplayName: LAUNCHER_NAME,
