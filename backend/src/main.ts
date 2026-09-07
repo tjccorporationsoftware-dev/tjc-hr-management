@@ -159,9 +159,25 @@ async function bootstrap() {
   app.enableShutdownHooks();
 
   const port = Number(process.env.PORT ?? 4000);
-  await app.listen(port);
 
-  console.log(`HR Workforce API is running on http://localhost:${port}/api`);
+  /*
+   * ที่อยู่ที่เปิดรับคำขอ — production ผูก 127.0.0.1 อย่างเดียว
+   *
+   * เซิร์ฟเวอร์จริงรับ traffic ผ่าน Cloudflare Tunnel ซึ่งวิ่งอยู่บนเครื่องเดียวกัน
+   * จึงเรียก localhost ได้ ถ้าปล่อยให้ผูกทุกอินเทอร์เฟซ (ค่าเดิมของ Nest)
+   * ใครก็ตามที่อยู่ในวงแลนเดียวกันจะยิง API ตรงได้โดยข้าม Cloudflare Access
+   * และข้ามกฎ WAF ทั้งหมด ซึ่งเป็นด่านความปลอดภัยชั้นเดียวที่มี
+   *
+   * ตอนพัฒนายังผูกทุกอินเทอร์เฟซเหมือนเดิม เพราะต้องให้แอปมือถือในวงแลนเรียกได้
+   * ตั้ง HOST เองได้ถ้าต้องการค่าอื่น
+   */
+  const host =
+    process.env.HOST ??
+    (process.env.NODE_ENV === 'production' ? '127.0.0.1' : '0.0.0.0');
+
+  await app.listen(port, host);
+
+  console.log(`HR Workforce API is running on http://${host}:${port}/api`);
   console.log(
     `Public avatars are served from http://localhost:${port}/uploads/avatars`,
   );
