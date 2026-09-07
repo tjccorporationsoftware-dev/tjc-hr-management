@@ -1,7 +1,7 @@
 # ติดตั้งบน Windows Server (ไม่ใช้ Docker)
 
-คู่มือนี้ใช้กับการติดตั้งตรงบน Windows Server
-ถ้าใช้ Docker/Linux ให้ดู [DEPLOYMENT.md](DEPLOYMENT.md) แทน
+คู่มือนี้ใช้กับการติดตั้งตรงบน Windows Server ซึ่งเป็นวิธีเดียวที่โปรเจกต์นี้ใช้จริง
+(ไฟล์ Docker ฝั่ง production ถูกถอดออกแล้ว เหลือ docker-compose.yml ไว้รัน Postgres/Redis ตอนพัฒนาเท่านั้น)
 
 ตัวอย่างทั้งหมดสมมติว่าวางโปรเจกต์ไว้ที่ `D:\hr` ปรับตามจริงได้
 

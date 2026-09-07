@@ -12,18 +12,10 @@
 ถ้าไม่มีตัวนี้ ทางเลือกที่เหลือคือปล่อย `/iclock/*` ไว้โดยไม่ตรวจโทเคน
 ซึ่งแปลว่าใครก็ตามที่ยิงถึงพอร์ตนั้นได้ **สร้างรายการลงเวลาปลอมเข้าระบบได้ทันที**
 
-## รันด้วย docker (ทางปกติ)
+โทเคนที่ใส่ในไฟล์นี้ **ต้องเป็นค่าเดียวกับ `ATTENDANCE_DEVICE_PUSH_TOKEN` ใน `backend/.env`**
+ไม่ตรงกัน = backend ตอบ 401 ข้อมูลลงเวลาไม่เข้า และไม่มีอะไรเตือนที่หน้าเว็บ
 
-`docker-compose.prod.yml` มี service `device-proxy` เรียกไฟล์นี้ให้แล้ว
-ต้องมี `ATTENDANCE_DEVICE_PUSH_TOKEN` ใน `.env` ที่โฟลเดอร์บนสุด
-**ค่าเดียวกับที่อยู่ใน `backend/.env`** ไม่ตรงกัน = backend ตอบ 401
-ข้อมูลลงเวลาไม่เข้า และไม่มีอะไรเตือนที่หน้าเว็บ
-
-```bash
-docker compose -f docker-compose.prod.yml up -d device-proxy
-```
-
-## รันด้วย nginx ที่ติดตั้งบนเครื่อง (ไม่ผ่าน docker)
+## รันด้วย nginx ที่ติดตั้งบนเครื่อง
 
 1. คัดลอกไฟล์ไปที่ `/etc/nginx/conf.d/attendance-device-proxy.conf`
    (ตัด `.template` ออก)

@@ -61,6 +61,6 @@ for (const item of values) {
   console.log("");
 }
 
-console.log("POSTGRES_PASSWORD ต้องวางใน .env ที่ระดับ repo ด้วย");
-console.log("เพราะ docker-compose.prod.yml อ่านค่านั้นตอนสร้างฐานข้อมูล");
+console.log("POSTGRES_PASSWORD ใช้กับ Postgres ที่ติดตั้งบนเซิร์ฟเวอร์");
+console.log("ต้องตรงกับรหัสผ่านใน DATABASE_URL ของ backend/.env");
 console.log("");

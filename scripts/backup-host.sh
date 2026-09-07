@@ -6,9 +6,12 @@
 #
 # ## ทำไมต้องมีไฟล์นี้ ทั้งที่มี backend/scripts/backup.ts อยู่แล้ว
 #
+# ใช้เฉพาะกรณีที่ยกระบบไปรันบน Linux ด้วย Docker เอง — การติดตั้งจริงบน Windows Server
+# ใช้ backend/scripts/backup.ts ผ่าน Scheduled Task ตาม DEPLOYMENT-WINDOWS.md แทน
+#
 # backup.ts เรียก `docker exec ... pg_dump` ซึ่งในคอนเทนเนอร์ backend ไม่มีคำสั่ง
 # docker จึงรันจากในคอนเทนเนอร์ไม่ได้ และถ้ารันจากโฮสต์ก็ยังหาไฟล์ที่ผู้ใช้อัปโหลด
-# ไม่เจอ เพราะ docker-compose.prod.yml เก็บไว้เป็น named volume ไม่ใช่โฟลเดอร์บนโฮสต์
+# ไม่เจอ เพราะ compose ฝั่ง Docker เก็บไว้เป็น named volume ไม่ใช่โฟลเดอร์บนโฮสต์
 # ไฟล์นี้จึงทำงานผ่าน docker ล้วน ๆ ไม่ต้องมี node หรือ pg_dump บนโฮสต์เลย
 #
 # backup.ts ยังใช้ได้ตามเดิมบนเครื่องพัฒนาที่ผูกโฟลเดอร์ตรง ๆ

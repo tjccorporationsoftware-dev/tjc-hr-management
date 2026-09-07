@@ -96,10 +96,10 @@ cd D:\hr
 แทน `<<<ATTENDANCE_DEVICE_PUSH_TOKEN>>>` ด้วยค่าจาก `backend/.env`
 แล้ว `caddy validate` → `caddy reload`
 
-## 4. docker compose
+## 4. nginx ที่ติดตั้งบนเครื่อง
 
-`docker-compose.prod.yml` มี service `device-proxy` (nginx) ทำหน้าที่เดียวกัน
-รายละเอียดใน `nginx/README.md`
+รายละเอียดใน `nginx/README.md` — ระบบจริงติดตั้งตรงบน Windows Server ไม่ใช้ Docker
+จึงต้องรัน nginx (หรือ Caddy) บนเครื่องเอง
 
 ---
 

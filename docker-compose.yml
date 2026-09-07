@@ -24,7 +24,7 @@ services:
 # ว่าไฟล์ถูกเก็บบน object storage แล้ว
 #
 # ถ้าต้องรันหลาย instance ให้ mount UPLOAD_DIR/STORAGE_DIR เป็นที่เก็บร่วม
-# (NFS / EFS / Azure Files) ดูตัวอย่าง volume ใน docker-compose.prod.yml
+# (NFS / EFS / Azure Files) — บนเซิร์ฟเวอร์จริงใช้โฟลเดอร์บนดิสก์ตาม DEPLOYMENT-WINDOWS.md
 
 volumes:
   hr_postgres_data:
