@@ -1,0 +1,24 @@
+# เปิดสลิปเงินเดือนและหนังสือรับรอง 50 ทวิ
+#
+# critical path ข้อ 5 — จอที่มีข้อมูลการเงิน ต้องเปิดได้และต้องไม่หลุด
+# ไปให้คนที่ไม่มีสิทธิ์ (ดู 05-permission-boundary.yaml)
+appId: ${APP_ID}
+name: สลิปเงินเดือนและ 50 ทวิ
+tags:
+  - critical
+  - payroll
+---
+- runFlow:
+    file: ../subflows/sign-in.yaml
+
+- tapOn: 'เงินเดือน'
+- assertVisible: 'สลิปย้อนหลังและหนังสือรับรองหักภาษี'
+
+- tapOn: 'หนังสือรับรอง 50 ทวิ'
+- assertVisible: 'ข้อมูลหักภาษี ณ ที่จ่ายของคุณ'
+
+# ปีที่ยังไม่มีข้อมูลต้องขึ้น empty state ไม่ใช่จอขาวหรือ error
+- extendedWaitUntil:
+    visible:
+      text: 'บาท|ยังไม่มีข้อมูล|ยังไม่มีหนังสือรับรอง'
+    timeout: 10000

@@ -1,0 +1,45 @@
+# ผู้บริหารเปลี่ยนตัวกรองและเจาะลึก
+#
+# critical path ข้อ 8 — ใช้บัญชีผู้บริหาร (EXEC_EMAIL)
+#
+# จุดที่ต้องระวังคือ **การ์ดต้นทุนต้องหายไปทั้งใบเมื่อไม่มี PAYROLL_READ**
+# ไม่ใช่แสดงศูนย์ ซึ่งอ่านผิดได้ว่าองค์กรไม่มีค่าใช้จ่าย
+appId: ${APP_ID}
+name: ห้องผู้บริหาร
+tags:
+  - critical
+  - executive
+---
+- runFlow:
+    file: ../subflows/sign-in.yaml
+    env:
+      EMAIL: ${EXEC_EMAIL}
+      PASSWORD: ${EXEC_PASSWORD}
+
+- tapOn: 'ภาพรวม'
+- assertVisible: 'ภาพรวมบริษัท'
+
+- assertVisible: 'ดูละเอียด'
+- tapOn: 'ตัวชี้วัดบริหาร'
+- assertVisible: 'กำลังคนและการรักษาคน'
+
+# ต้องบอกเสมอว่าเห็นต้นทุนหรือไม่ ห้ามเงียบ
+- extendedWaitUntil:
+    visible:
+      text: 'ต้นทุนแรงงาน|ไม่มีสิทธิ์ดูข้อมูลต้นทุนแรงงาน'
+    timeout: 15000
+- back
+
+- tapOn: 'กำลังคน'
+# ใช้ข้อความที่มีเฉพาะจอกำลังคน — "ภาพรวม" ไปตรงกับ "ภาพรวมบริษัท" ของจอเดิม
+# แล้วจะผ่านทั้งที่ยังไม่ได้เปลี่ยนจอ
+- assertVisible: 'สัดส่วนที่ทำงานอยู่'
+- tapOn: 'ตัวกรอง'
+- assertVisible: 'บริษัท'
+- assertVisible: 'สาขา'
+- assertVisible: 'แผนก'
+- back
+- back
+
+- tapOn: 'เวลาทำงานวันนี้'
+- assertVisible: 'สรุปวันนี้'

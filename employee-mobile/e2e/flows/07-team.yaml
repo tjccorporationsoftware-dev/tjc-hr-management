@@ -1,0 +1,41 @@
+# หัวหน้าดูทีมและเจาะลึกรายคน
+#
+# ครอบจอที่เพิ่มใน Phase 5 — ถ้าเดือนย้อนหลังหรือ drill-down พัง จะเห็นตรงนี้
+appId: ${APP_ID}
+name: ข้อมูลทีมของหัวหน้า
+tags:
+  - critical
+  - team
+---
+- runFlow:
+    file: ../subflows/sign-in.yaml
+    env:
+      EMAIL: ${MANAGER_EMAIL}
+      PASSWORD: ${MANAGER_PASSWORD}
+
+- tapOn: 'ฉัน'
+- tapOn: 'ทีมของฉัน'
+# ยืนยันด้วยข้อความที่มีเฉพาะในจอทีม — คำว่า "ทีมของฉัน" อยู่บนเมนูหน้าโปรไฟล์
+# ด้วย ถ้า assert คำนั้นจะผ่านทั้งที่ยังไม่ได้ออกจากหน้าเดิม
+- assertVisible: 'ดูข้อมูลทีมย้อนหลัง'
+
+# เดือนย้อนหลังต้องกดได้และตัวเลขต้องเปลี่ยนตาม
+- tapOn: 'เดือนก่อนหน้า'
+- assertVisible: 'ย้อนหลัง'
+
+- tapOn: 'เดือนถัดไป'
+
+# ทางเข้าจอเจาะลึกครบสามจอ
+- assertVisible: 'ปฏิทินทีม'
+- assertVisible: 'ประวัติการลงเวลา'
+- assertVisible: 'คำขอของทีม'
+
+- tapOn: 'ปฏิทินทีม'
+- assertVisible: 'ภาพรวมทั้งเดือน'
+- back
+
+- tapOn: 'คำขอของทีม'
+- extendedWaitUntil:
+    visible:
+      text: 'ดูอย่างเดียว|ไม่พบคำขอ'
+    timeout: 15000

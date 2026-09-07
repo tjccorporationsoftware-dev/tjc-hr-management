@@ -1,0 +1,20 @@
+# กดรหัส PIN ทีละหลัก
+#
+# แยกเป็น subflow เพราะทุก flow ต้องใช้ และ Maestro ไม่มีลูปที่วนตามตัวอักษร
+# ของตัวแปรได้ตรง ๆ — การกดหกครั้งเขียนไว้ที่เดียวดีกว่ากระจายไปทุกไฟล์
+#
+# ต้องส่ง PIN มาเป็นตัวเลขหกหลักผ่านตัวแปร PIN
+appId: ${APP_ID}
+---
+- tapOn:
+    id: 'pin-key-${PIN[0]}'
+- tapOn:
+    id: 'pin-key-${PIN[1]}'
+- tapOn:
+    id: 'pin-key-${PIN[2]}'
+- tapOn:
+    id: 'pin-key-${PIN[3]}'
+- tapOn:
+    id: 'pin-key-${PIN[4]}'
+- tapOn:
+    id: 'pin-key-${PIN[5]}'

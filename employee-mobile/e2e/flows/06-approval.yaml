@@ -1,0 +1,31 @@
+# หัวหน้าเปิดกล่องอนุมัติและดูรายละเอียด
+#
+# ครึ่งหลังของ critical path ข้อ 1 — ใช้บัญชีหัวหน้า (MANAGER_EMAIL)
+#
+# **ไม่กดอนุมัติจริง** เพราะจะไปเปลี่ยนสถานะใบของพนักงานจริงใน staging
+# สิ่งที่ยืนยันคือหัวหน้าเห็นคิว เปิดรายละเอียดได้ และปุ่มครบสามปุ่ม
+appId: ${APP_ID}
+name: กล่องอนุมัติของหัวหน้า
+tags:
+  - critical
+  - approval
+---
+- runFlow:
+    file: ../subflows/sign-in.yaml
+    env:
+      EMAIL: ${MANAGER_EMAIL}
+      PASSWORD: ${MANAGER_PASSWORD}
+
+- tapOn: 'อนุมัติ'
+- assertVisible: 'รออนุมัติ'
+
+# ตัวกรองประเภทต้องมีครบห้าประเภทรวมคำร้องเอกสาร
+- assertVisible: 'ลา'
+- assertVisible: 'OT'
+- assertVisible: 'เอกสาร'
+
+# มีใบรออนุมัติ = ต้องเปิดรายละเอียดได้ / ไม่มี = ต้องขึ้น empty state
+- extendedWaitUntil:
+    visible:
+      text: 'ดูรายละเอียดและไฟล์แนบ|ไม่มีรายการรออนุมัติ|เคลียร์คิวหมดแล้ว'
+    timeout: 15000

@@ -1,0 +1,29 @@
+# ผู้ที่ไม่มีสิทธิ์ต้องไม่เห็นเมนู
+#
+# critical path ข้อ 9 — เมนูมาจาก feature flag ที่ backend ตัดสิน ไม่ใช่จาก
+# ชื่อบทบาทในแอป เทสนี้จับกรณีที่ flag หลุดแล้วพนักงานธรรมดาเห็นห้องผู้บริหาร
+#
+# ใช้บัญชีพนักงานธรรมดา (EMAIL) ซึ่งต้องไม่มี EXECUTIVE_VIEW และ TEAM_VIEW
+appId: ${APP_ID}
+name: ขอบเขตสิทธิ์ของพนักงานทั่วไป
+tags:
+  - critical
+  - permission
+---
+- runFlow:
+    file: ../subflows/sign-in.yaml
+
+# แท็บที่ต้องเห็น
+- assertVisible: 'หน้าหลัก'
+- assertVisible: 'ฉัน'
+
+# แท็บของบทบาทอื่นต้องไม่โผล่
+- assertNotVisible: 'ภาพรวม'
+- assertNotVisible: 'อนุมัติ'
+
+- tapOn: 'ฉัน'
+
+# ทางเข้าจากหน้าโปรไฟล์ก็ต้องไม่มีเช่นกัน — ซ่อนแท็บอย่างเดียวไม่พอ
+# เพราะเมนูล้นถูกย้ายมาไว้ที่นี่
+- assertNotVisible: 'ทีมของฉัน'
+- assertNotVisible: 'ภาพรวมบริษัท'

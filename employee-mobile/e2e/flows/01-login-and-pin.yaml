@@ -1,0 +1,47 @@
+# เข้าสู่ระบบ ตั้ง PIN และปลดล็อก
+#
+# flow นี้เป็นรากของทุก flow ที่เหลือ — ตัวอื่นเรียก subflow นี้เพื่อเข้าแอป
+# ถ้าตัวนี้พัง ตัวอื่นจะพังตามหมด และนั่นคือสัญญาณที่ถูกต้อง
+appId: ${APP_ID}
+name: เข้าสู่ระบบและตั้งรหัส PIN
+tags:
+  - critical
+  - auth
+---
+# ล้างสถานะทุกครั้ง — flow ต้องเริ่มจากแอปที่ยังไม่เคยล็อกอิน ไม่งั้นผลลัพธ์
+# จะขึ้นกับว่ารันตัวไหนมาก่อน ซึ่งเป็นที่มาของเทสที่ "ผ่านบ้างไม่ผ่านบ้าง"
+- clearState
+- launchApp
+
+- assertVisible: 'เข้าสู่ระบบ'
+
+- tapOn:
+    id: 'login-email'
+- inputText: ${EMAIL}
+
+- tapOn:
+    id: 'login-password'
+- inputText: ${PASSWORD}
+
+- hideKeyboard
+- tapOn:
+    id: 'login-submit'
+
+# ตั้ง PIN — บัญชีที่เพิ่งล็อกอินบนเครื่องใหม่ต้องผ่านด่านนี้เสมอ
+- assertVisible: 'ตั้งรหัส PIN'
+- runFlow:
+    file: ../subflows/enter-pin.yaml
+
+- assertVisible: 'ยืนยันรหัส PIN อีกครั้ง'
+- runFlow:
+    file: ../subflows/enter-pin.yaml
+
+# เข้าถึงหน้าหลักแล้ว
+- assertVisible: 'หน้าหลัก'
+
+# ปิดแอปแล้วเปิดใหม่ต้องเจอด่าน PIN ไม่ใช่หลุดเข้าไปเลย
+- stopApp
+- launchApp
+- runFlow:
+    file: ../subflows/enter-pin.yaml
+- assertVisible: 'หน้าหลัก'

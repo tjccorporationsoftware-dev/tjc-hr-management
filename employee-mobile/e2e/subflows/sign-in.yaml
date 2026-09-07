@@ -1,0 +1,26 @@
+# เข้าสู่ระบบจนถึงหน้าหลัก
+#
+# ใช้เป็นจุดเริ่มของ flow ที่ไม่ได้ทดสอบตัวการล็อกอินเอง
+# รับ EMAIL / PASSWORD / PIN มาเป็นตัวแปร จึงสลับบัญชีได้ต่อ flow
+appId: ${APP_ID}
+---
+- clearState
+- launchApp
+
+- tapOn:
+    id: 'login-email'
+- inputText: ${EMAIL}
+- tapOn:
+    id: 'login-password'
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: 'login-submit'
+
+- assertVisible: 'ตั้งรหัส PIN'
+- runFlow:
+    file: enter-pin.yaml
+- runFlow:
+    file: enter-pin.yaml
+
+- assertVisible: 'หน้าหลัก'

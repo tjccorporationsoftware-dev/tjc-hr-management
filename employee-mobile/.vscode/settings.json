@@ -1,0 +1,12 @@
+{
+  // ให้ VS Code ใช้ TypeScript ของโปรเจกต์ (6.0.x) ไม่ใช่ตัวที่ติดมากับตัวแก้ไข
+  //
+  // ตัวแก้ไขมี TypeScript ฝังมาเองซึ่งเก่ากว่า พออ่าน expo/tsconfig.base ที่ใช้
+  // ไวยากรณ์ใหม่ (${configDir}) ไม่ออก เลยขีดเส้นแดงใต้บรรทัด extends ทั้งที่
+  // สั่ง `npx tsc --noEmit` จาก command line แล้วผ่านปกติ
+  //
+  // แพ็กเกจในรีโปนี้ใช้ TypeScript คนละเวอร์ชันกัน (แอป 6.0.x · backend/frontend 5.9.x)
+  // จึงต้องตั้งแยกรายโฟลเดอร์ ห้ามตั้งรวมที่รากรีโป
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
