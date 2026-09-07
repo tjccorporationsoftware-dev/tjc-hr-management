@@ -18,7 +18,8 @@
     "test:watch": "jest --watch",
     "e2e": "maestro test -e APP_ID=com.tjc.employeemobile.development e2e/flows",
     "doctor": "npx expo-doctor",
-    "validate": "npm run typecheck && npm run lint && npm test -- --runInBand"
+    "validate": "npm run typecheck && npm run lint && npm test -- --runInBand",
+    "update": "node scripts/publish-update.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/ibm-plex-sans-thai": "^0.4.1",
