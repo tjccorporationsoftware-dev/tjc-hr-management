@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from 'react';
 import {
-  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -92,9 +91,37 @@ export function KeyboardAwareScroll({
   const scrollRef = useRef<ScrollView>(null);
   /* ค่าที่ต้องอ่านตอนเกิดเหตุการณ์เท่านั้น เก็บใน ref ไม่ให้เรนเดอร์ใหม่ทุกเฟรม */
   const offsetRef = useRef(0);
-  const keyboardRef = useRef(0);
+  /*
+   * ขอบบนของแป้นพิมพ์ในพิกัดหน้าจอ ไม่ใช่ความสูงของมัน
+   *
+   * ระบบส่งค่านี้มาให้ตรง ๆ (`endCoordinates.screenY`) ซึ่งเทียบกับพิกัดที่
+   * `measureInWindow` คืนมาได้เลย ต่างจากการเอาความสูงจอลบความสูงแป้นพิมพ์
+   * ที่บน Android แบบ edge-to-edge สองค่านั้นไม่ได้อ้างอิงขอบเดียวกันเสมอไป
+   */
+  const keyboardTopRef = useRef(0);
+  /** ช่องที่ถูกโฟกัสล่าสุด รอเลื่อนเมื่อรู้ตำแหน่งแป้นพิมพ์ */
+  const focusedRef = useRef<View | null>(null);
   /* ความสูงแป้นพิมพ์แบบที่ทำให้เรนเดอร์ใหม่ — ใช้เฉพาะ Android ดูเหตุผลข้างล่าง */
   const [androidKeyboard, setAndroidKeyboard] = useState(0);
+
+  const scrollIntoView = useCallback(
+    (target: View | null, keyboardTop: number) => {
+      if (!target || keyboardTop <= 0) return;
+
+      target.measureInWindow((_x, y, _width, height) => {
+        const visibleBottom = keyboardTop - extraOffset;
+        const fieldBottom = y + height;
+
+        if (fieldBottom <= visibleBottom) return;
+
+        scrollRef.current?.scrollTo({
+          animated: true,
+          y: offsetRef.current + (fieldBottom - visibleBottom),
+        });
+      });
+    },
+    [extraOffset],
+  );
 
   useEffect(() => {
     const showEvent =
@@ -103,13 +130,30 @@ export function KeyboardAwareScroll({
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     const show = Keyboard.addListener(showEvent, (event) => {
-      keyboardRef.current = event.endCoordinates.height;
+      keyboardTopRef.current = event.endCoordinates.screenY;
       if (Platform.OS === 'android') {
         setAndroidKeyboard(event.endCoordinates.height);
       }
+
+      /*
+       * เลื่อนตอน "แป้นพิมพ์ขึ้นแล้ว" ไม่ใช่ตอน "ช่องถูกโฟกัส"
+       *
+       * ของเดิมตั้งเวลาหน่วงไว้ 140 มิลลิวินาทีหลังโฟกัสแล้วค่อยวัด ซึ่งเป็น
+       * การเดาว่าแป้นพิมพ์ขึ้นเสร็จแล้ว บนเครื่องที่ช้ากว่านั้นความสูงแป้นยัง
+       * เป็นศูนย์ การคำนวณจึงสรุปว่าช่องไม่ได้ถูกบังแล้วไม่เลื่อนอะไรเลย
+       * ผู้ใช้ต้องเลื่อนเอง — เป็นอาการที่เจอจริงบนเครื่อง
+       *
+       * หน่วงสั้น ๆ ตรงนี้เพื่อรอให้ที่ว่างท้ายเนื้อหาที่เพิ่งเพิ่ม (ดูข้างล่าง)
+       * มีผลกับ layout ก่อน ไม่งั้นจะวัดได้ตำแหน่งของ layout รอบก่อน
+       */
+      setTimeout(
+        () => scrollIntoView(focusedRef.current, keyboardTopRef.current),
+        60,
+      );
     });
     const hide = Keyboard.addListener(hideEvent, () => {
-      keyboardRef.current = 0;
+      keyboardTopRef.current = 0;
+      focusedRef.current = null;
       if (Platform.OS === 'android') setAndroidKeyboard(0);
     });
 
@@ -117,36 +161,21 @@ export function KeyboardAwareScroll({
       show.remove();
       hide.remove();
     };
-  }, []);
+  }, [scrollIntoView]);
 
   const ensureVisible = useCallback<EnsureVisible>(
     (target) => {
-      if (!target) return;
+      focusedRef.current = target;
 
       /*
-       * หน่วงก่อนวัด — ตอน onFocus แป้นพิมพ์ยังไม่ขึ้นสุด ความสูงที่ได้จะเป็น
-       * ของรอบก่อน (หรือศูนย์ในครั้งแรก) แล้วเลื่อนผิดระยะ
+       * ย้ายไปช่องอื่นทั้งที่แป้นพิมพ์ขึ้นค้างอยู่ — กรณีนี้ `keyboardDidShow`
+       * ไม่ยิงซ้ำ จึงต้องเป็นคนเลื่อนเองที่นี่
        */
-      setTimeout(
-        () => {
-          target.measureInWindow((_x, y, _width, height) => {
-            const screenHeight = Dimensions.get('window').height;
-            const visibleBottom =
-              screenHeight - keyboardRef.current - extraOffset;
-            const fieldBottom = y + height;
-
-            if (fieldBottom <= visibleBottom) return;
-
-            scrollRef.current?.scrollTo({
-              animated: true,
-              y: offsetRef.current + (fieldBottom - visibleBottom),
-            });
-          });
-        },
-        Platform.OS === 'android' ? 140 : 80,
-      );
+      if (keyboardTopRef.current > 0) {
+        setTimeout(() => scrollIntoView(target, keyboardTopRef.current), 60);
+      }
     },
-    [extraOffset],
+    [scrollIntoView],
   );
 
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
