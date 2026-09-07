@@ -43,13 +43,43 @@ if (!channel) {
   process.exit(1);
 }
 
+/*
+ * `eas update` บังคับให้ระบุ `--environment` เมื่อรันแบบไม่มีคนตอบคำถาม
+ * (เช่นรันจากสคริปต์หรือ CI) ใช้ค่าเดียวกับที่โปรไฟล์บิลด์ตั้งไว้ ค่าที่รับ
+ * มีสามตัวคือ development / preview / production
+ */
+const environment = env.EXPO_PUBLIC_APP_ENV;
+if (!['development', 'preview', 'production'].includes(environment)) {
+  console.error(
+    `EXPO_PUBLIC_APP_ENV ของโปรไฟล์ "${PROFILE}" เป็น "${environment}" ` +
+      'ซึ่งไม่ใช่ค่าที่ eas update รับ (development / preview / production)',
+  );
+  process.exit(1);
+}
+
 console.log(`ส่งอัปเดตเข้า channel: ${channel}`);
 console.log(`แอปจะต่อ API ที่: ${env.EXPO_PUBLIC_API_BASE_URL ?? '(ไม่ได้ระบุ)'}`);
 console.log('');
 
+/*
+ * ครอบข้อความด้วยเครื่องหมายคำพูดเอง — ต้องรันผ่านเชลล์เพราะ `npx` บน Windows
+ * เป็นไฟล์ .cmd แต่เชลล์จะตัดข้อความที่มีเว้นวรรคออกเป็นหลายอาร์กิวเมนต์
+ * ถ้าไม่ครอบไว้ (`eas update` จะฟ้อง "Unexpected arguments")
+ */
+const quotedMessage = `"${message.replace(/"/g, '\\"')}"`;
+
 const result = spawnSync(
   'npx',
-  ['eas-cli', 'update', '--branch', channel, '--message', message],
+  [
+    'eas-cli',
+    'update',
+    '--branch',
+    channel,
+    '--environment',
+    environment,
+    '--message',
+    quotedMessage,
+  ],
   {
     cwd: root,
     /* ค่าจาก eas.json ต้องทับของที่ติดมาจากเชลล์และจาก .env เสมอ */
