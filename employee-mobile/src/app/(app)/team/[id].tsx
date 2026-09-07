@@ -20,6 +20,7 @@ import { useTeamMember } from '@/features/team/team-views';
 import { ApiError } from '@/lib/api/api-error';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { thaiDate, thaiTime } from '@/lib/date/thai-date';
+import { formatNumber } from '@/lib/format/number';
 
 /**
  * รายละเอียดลูกทีมรายคน
@@ -363,7 +364,7 @@ export default function TeamMemberScreen() {
                     <Row
                       key={balance.leaveTypeId ?? balance.code ?? balance.name}
                       label={balance.name ?? balance.code ?? 'ไม่ระบุประเภท'}
-                      value={`เหลือ ${balance.remainingDays} / ${balance.entitlementDays} วัน`}
+                      value={`เหลือ ${formatNumber(balance.remainingDays)} / ${formatNumber(balance.entitlementDays)} วัน`}
                     />
                   ))}
                 </View>

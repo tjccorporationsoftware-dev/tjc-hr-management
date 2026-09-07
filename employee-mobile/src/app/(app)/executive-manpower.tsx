@@ -35,6 +35,7 @@ import {
   SERIES_REST,
 } from '@/features/executive/royal';
 import { ApiError } from '@/lib/api/api-error';
+import { formatNumber } from '@/lib/format/number';
 
 /**
  * กำลังคน — ภาพรวมและการแบ่งตามมิติต่าง ๆ
@@ -748,7 +749,7 @@ export default function ExecutiveManpowerScreen() {
                         lineHeight: 16,
                       }}
                     >
-                      {`คิดเป็น ${data.metrics.activeRate}% ของทะเบียนทั้งหมด ${data.metrics.totalEmployees} คน`}
+                      {`คิดเป็น ${formatNumber(data.metrics.activeRate)}% ของทะเบียนทั้งหมด ${formatNumber(data.metrics.totalEmployees)} คน`}
                     </Text>
                   </View>
 

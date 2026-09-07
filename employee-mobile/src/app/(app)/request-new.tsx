@@ -74,6 +74,7 @@ import { ApiError } from '@/lib/api/api-error';
 import { captureException } from '@/lib/monitoring/monitoring';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { useVisibleStatusBarStyle } from '@/theme/use-status-bar-style';
+import { formatNumber } from '@/lib/format/number';
 
 /**
  * ยื่นคำขอใหม่
@@ -422,7 +423,7 @@ export default function NewRequestScreen() {
             Number(right.remainingDays > 0) - Number(left.remainingDays > 0),
         )
         .map((item) => ({
-          description: `คงเหลือ ${item.remainingDays} วัน${
+          description: `คงเหลือ ${formatNumber(item.remainingDays)} วัน${
             item.isPaid ? '' : ' · ไม่ได้รับค่าจ้าง'
           }`,
           label: item.name,

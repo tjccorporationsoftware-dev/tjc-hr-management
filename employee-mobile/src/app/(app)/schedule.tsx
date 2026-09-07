@@ -23,6 +23,7 @@ import type { ScheduleDay } from '@/features/schedule/schedule.types';
 import { ApiError } from '@/lib/api/api-error';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { thaiDate, thaiTime } from '@/lib/date/thai-date';
+import { formatNumber } from '@/lib/format/number';
 
 const WEEKDAYS = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
@@ -289,10 +290,10 @@ export default function ScheduleScreen() {
                     gap: theme.spacing.xs,
                   }}
                 >
-                  <Badge label={`มาทำงาน ${schedule.data.summary.attendanceDays} วัน`} tone="success" />
-                  <Badge label={`ลา ${schedule.data.summary.leaveDays} วัน`} tone="danger" />
-                  <Badge label={`OT ${schedule.data.summary.overtimeDays} วัน`} tone="warning" />
-                  <Badge label={`นอกสถานที่ ${schedule.data.summary.offsiteDays} วัน`} tone="primary" />
+                  <Badge label={`มาทำงาน ${formatNumber(schedule.data.summary.attendanceDays)} วัน`} tone="success" />
+                  <Badge label={`ลา ${formatNumber(schedule.data.summary.leaveDays)} วัน`} tone="danger" />
+                  <Badge label={`OT ${formatNumber(schedule.data.summary.overtimeDays)} วัน`} tone="warning" />
+                  <Badge label={`นอกสถานที่ ${formatNumber(schedule.data.summary.offsiteDays)} วัน`} tone="primary" />
                 </View>
 
                 {schedule.data.warning ? (

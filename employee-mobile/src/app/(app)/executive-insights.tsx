@@ -15,6 +15,7 @@ import {
 import { ColumnChart } from '@/design/chart';
 import { useExecutiveInsights } from '@/features/executive/executive-views';
 import { ApiError } from '@/lib/api/api-error';
+import { formatNumber } from '@/lib/format/number';
 
 /**
  * ตัวชี้วัดเชิงบริหาร
@@ -253,7 +254,7 @@ export default function ExecutiveInsightsScreen() {
                       />
                       <StatCell
                         label="ผ่านทดลองงาน"
-                        value={`${data.workforce.probationPassRate}%`}
+                        value={`${formatNumber(data.workforce.probationPassRate)}%`}
                       />
                     </View>
 

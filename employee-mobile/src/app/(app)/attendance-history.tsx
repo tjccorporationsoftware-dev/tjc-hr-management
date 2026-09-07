@@ -39,6 +39,7 @@ import { ApiError } from '@/lib/api/api-error';
 import { useRefetchOnFocus } from '@/lib/query/use-refetch-on-focus';
 import { useAppTheme } from '@/theme/use-app-theme';
 import { useVisibleStatusBarStyle } from '@/theme/use-status-bar-style';
+import { formatNumber } from '@/lib/format/number';
 
 /**
  * ประวัติลงเวลา — ผิวขาวผืนเดียวชุดเดียวกับจอคำขอ เงินเดือน และข้อมูลพนักงาน
@@ -400,7 +401,7 @@ function PeriodBlock({
         <StatCell
           color={AURORA.text}
           label="มาทำงาน"
-          value={`${workedDays} วัน`}
+          value={`${formatNumber(workedDays)} วัน`}
         />
         <StatCell
           color={summary.totalLateMinutes > 0 ? AURORA.amber : AURORA.textFaint}
@@ -421,7 +422,7 @@ function PeriodBlock({
         <StatCell
           color={summary.leaveDays > 0 ? AURORA.sky : AURORA.textFaint}
           label="วันลา"
-          value={summary.leaveDays > 0 ? `${summary.leaveDays} วัน` : 'ไม่มี'}
+          value={summary.leaveDays > 0 ? `${formatNumber(summary.leaveDays)} วัน` : 'ไม่มี'}
         />
       </View>
 

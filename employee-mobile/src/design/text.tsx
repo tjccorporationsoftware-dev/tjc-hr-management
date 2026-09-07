@@ -1,8 +1,11 @@
+import { Children } from 'react';
 import {
   StyleSheet,
   Text as RNText,
   type TextProps as RNTextProps,
 } from 'react-native';
+
+import { formatNumber } from '@/lib/format/number';
 
 import {
   fontFamilyForWeight,
@@ -36,6 +39,7 @@ export function Text({
   variant = 'body',
   maxScale = 1.4,
   style,
+  children,
   ...props
 }: TextProps) {
   const { theme } = useAppTheme();
@@ -88,6 +92,20 @@ export function Text({
       }
     : null;
 
+  /*
+   * ตัวเลขที่ใส่มาตรง ๆ ถูกจำกัดทศนิยมให้ไม่เกินสองตำแหน่งที่นี่
+   *
+   * บั๊กที่เคยเกิดจริง: ผลรวมวันลาคงเหลือบนหน้าแรกขึ้นเป็น 74.2599999999999
+   * แล้วล้นออกนอกวงโดนัท เพราะเป็นผลบวกของทศนิยมที่คอมพิวเตอร์เก็บไม่ตรงเป๊ะ
+   *
+   * ดักที่นี่ที่เดียวแทนการไล่ใส่ทุกจุดที่แสดงตัวเลข ซึ่งยังไงก็มีคนลืมอีก
+   * ข้อจำกัดคือดักได้เฉพาะตัวเลขที่ส่งเข้ามาเป็นตัวเลขจริง ๆ ถ้าประกอบเป็น
+   * ข้อความไปแล้ว (`` `${n} วัน` ``) ต้องเรียก `formatNumber` เองที่ต้นทาง
+   */
+  const formattedChildren = Children.map(children, (child) =>
+    typeof child === 'number' ? formatNumber(child) : child,
+  );
+
   return (
     <RNText
       maxFontSizeMultiplier={maxScale}
@@ -99,6 +117,8 @@ export function Text({
         overrideFont,
         autoLineHeight,
       ]}
-    />
+    >
+      {formattedChildren}
+    </RNText>
   );
 }
