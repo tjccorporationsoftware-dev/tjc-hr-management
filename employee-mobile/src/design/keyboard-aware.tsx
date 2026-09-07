@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import {
@@ -12,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   type ScrollViewProps,
@@ -91,6 +93,8 @@ export function KeyboardAwareScroll({
   /* ค่าที่ต้องอ่านตอนเกิดเหตุการณ์เท่านั้น เก็บใน ref ไม่ให้เรนเดอร์ใหม่ทุกเฟรม */
   const offsetRef = useRef(0);
   const keyboardRef = useRef(0);
+  /* ความสูงแป้นพิมพ์แบบที่ทำให้เรนเดอร์ใหม่ — ใช้เฉพาะ Android ดูเหตุผลข้างล่าง */
+  const [androidKeyboard, setAndroidKeyboard] = useState(0);
 
   useEffect(() => {
     const showEvent =
@@ -100,9 +104,13 @@ export function KeyboardAwareScroll({
 
     const show = Keyboard.addListener(showEvent, (event) => {
       keyboardRef.current = event.endCoordinates.height;
+      if (Platform.OS === 'android') {
+        setAndroidKeyboard(event.endCoordinates.height);
+      }
     });
     const hide = Keyboard.addListener(hideEvent, () => {
       keyboardRef.current = 0;
+      if (Platform.OS === 'android') setAndroidKeyboard(0);
     });
 
     return () => {
@@ -146,12 +154,41 @@ export function KeyboardAwareScroll({
     onScroll?.(event);
   }
 
+  /*
+   * เผื่อที่ว่างท้ายเนื้อหาเท่าความสูงแป้นพิมพ์ — Android เท่านั้น
+   *
+   * ตั้งแต่ SDK 54 Android เป็น edge-to-edge เสมอ หน้าต่างจึงไม่ถูกย่อลงเมื่อ
+   * แป้นพิมพ์ขึ้นอีกต่อไป `ScrollView` ยังสูงเท่าเดิม แปลว่าถ้าเนื้อหาไม่ยาว
+   * เกินจอ (เช่นจอล็อกอินที่จัดกลางด้วย `justifyContent: 'center'`) มันจะไม่มี
+   * ที่ให้เลื่อนเลย แล้ว `scrollTo` ข้างบนก็ทำอะไรไม่ได้ ช่องล่างสุดเลยถูก
+   * แป้นพิมพ์ทับค้างไว้ ส่วนฟอร์มที่ยาวเกินจออยู่แล้วก็ยังเลื่อนช่องสุดท้าย
+   * ให้พ้นแป้นพิมพ์ไม่ได้ เพราะเลื่อนได้แค่สุดเนื้อหาเดิม
+   *
+   * iOS ไม่ต้องเผื่อ เพราะจอที่ใช้ตัวนี้ครอบด้วย `KeyboardAvoidingView`
+   * behavior="padding" ซึ่งหดกรอบให้แล้ว ใส่ซ้ำจะกลายเป็นเผื่อสองชั้น
+   */
+  const basePadding = StyleSheet.flatten(
+    props.contentContainerStyle,
+  )?.paddingBottom;
+  const contentContainerStyle =
+    androidKeyboard > 0
+      ? [
+          props.contentContainerStyle,
+          {
+            paddingBottom:
+              (typeof basePadding === 'number' ? basePadding : 0) +
+              androidKeyboard,
+          },
+        ]
+      : props.contentContainerStyle;
+
   return (
     <KeyboardScrollContext.Provider value={ensureVisible}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         {...props}
+        contentContainerStyle={contentContainerStyle}
         onScroll={handleScroll}
         ref={scrollRef}
         scrollEventThrottle={16}
