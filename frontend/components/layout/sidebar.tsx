@@ -52,15 +52,12 @@ function getGroupLinkItems(items: NavigationItem[]): NavigationItem[] {
 function BrandBlock() {
   return (
     <div className="flex h-20 shrink-0 items-center gap-3 border-b border-slate-300 px-4">
-      {/*
-       * ใช้ตัวสัญลักษณ์อย่างเดียว ไม่ใช้โลโก้เต็มที่มีข้อความอยู่ในรูป
-       * เพราะข้อความในรูปจะเล็กจนอ่านไม่ออกที่ความสูง 44px และคมชัดสู้ตัวอักษรจริงไม่ได้
-       */}
+      {/* ชื่อระบบเขียนเป็นตัวอักษรจริงข้าง ๆ อยู่แล้ว รูปจึงทำหน้าที่เป็นสัญลักษณ์อย่างเดียว */}
       <Image
-        src="/logo/mark.png"
+        src="/logo/app-icon.png"
         alt=""
-        width={1429}
-        height={1429}
+        width={1024}
+        height={1024}
         priority
         className="h-11 w-11 shrink-0 object-contain"
       />
