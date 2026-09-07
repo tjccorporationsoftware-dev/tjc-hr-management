@@ -9,6 +9,24 @@
  */
 process.env.TZ = process.env.TZ || 'Asia/Bangkok';
 
+/*
+ * โหลด .env ให้เสร็จก่อนโมดูลอื่นถูก import
+ *
+ * ปกติ ConfigModule ของ Nest เป็นคนโหลด .env แต่มันทำงานตอน "สร้างแอป" ซึ่งช้ากว่า
+ * จังหวะที่ไฟล์อื่นถูก import เข้ามา — โมดูลที่อ่าน process.env ตอนถูกโหลด (ค่าคงที่
+ * ระดับไฟล์) จึงอ่านไม่เจอแล้วตกไปใช้ค่า default
+ *
+ * เคสจริงที่เจอบนเซิร์ฟเวอร์: ตัวเก็บไฟล์อัปโหลด 4 ตัว (รูปโปรไฟล์ โลโก้บริษัท
+ * โลโก้สาขา เอกสารเงินเดือน) อ่าน UPLOAD_DIR ตอนโหลดโมดูลจึงได้ค่า default
+ * "uploads" แล้วเขียนไฟล์ลง backend/uploads ส่วน main.ts อ่านค่าเดียวกันหลังสร้าง
+ * แอปเสร็จ (ตอนนั้น .env โหลดแล้ว) จึงไปเสิร์ฟจาก D:/.../data/uploads
+ * ผลคือรูปที่อัปโหลดสำเร็จกลับ 404 และเพราะเป็นการโหลดรูป มันไม่ขึ้น error
+ * ให้เห็น แค่ตกไปแสดงอักษรย่อเงียบ ๆ เหมือน "ระบบไม่รับรูป"
+ *
+ * บนเครื่องพัฒนาไม่เคยเจอ เพราะไม่ได้ตั้ง UPLOAD_DIR ทั้งสองฝั่งเลยชี้ที่เดียวกัน
+ */
+import 'dotenv/config';
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
