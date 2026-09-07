@@ -15,6 +15,8 @@ type DatabaseConfig = {
   database: string;
   username: string;
   password: string;
+  host: string;
+  port: string;
 };
 
 type BackupManifest = {
@@ -88,6 +90,8 @@ function parseDatabaseUrl(databaseUrl: string): DatabaseConfig {
     database,
     username: decodeURIComponent(url.username),
     password: decodeURIComponent(url.password),
+    host: url.hostname || "127.0.0.1",
+    port: url.port || "5432",
   };
 }
 
@@ -100,20 +104,37 @@ async function pathExists(targetPath: string) {
   }
 }
 
-function runDockerPgDump(params: {
+/**
+ * เรียก pg_dump แล้วเทผลลงไฟล์
+ *
+ * มีสองทางเพราะเครื่องที่รันระบบมีสองแบบ
+ *   - PostgreSQL ใน Docker (เครื่องพัฒนา) → ต้อง `docker exec` เข้าไปในคอนเทนเนอร์
+ *   - PostgreSQL ติดตั้งบนเครื่อง (เซิร์ฟเวอร์จริงบน Windows) → เรียก pg_dump ตรง ๆ
+ *
+ * เลือกจาก POSTGRES_CONTAINER_NAME — ตั้งไว้ = ใช้ docker · ปล่อยว่าง = เรียกตรง
+ * ของเดิมมีแต่ทาง docker ซึ่งบนเซิร์ฟเวอร์ Windows จะล้มทุกคืนแบบเงียบ ๆ
+ * (งานตามตารางจับ error ไว้เอง ไม่มีอะไรเด้งให้เห็นที่หน้าเว็บ)
+ *
+ * บน Windows ตัว pg_dump มักไม่ได้อยู่ใน PATH ของโปรเซสที่ pm2 ปลุกขึ้นมา
+ * จึงตั้งที่อยู่เต็มได้ผ่าน PG_DUMP_PATH
+ */
+function runPgDump(params: {
   containerName: string;
   database: string;
   username: string;
   password: string;
+  host: string;
+  port: string;
   outputFile: string;
 }) {
   return new Promise<void>((resolve, reject) => {
-    const args = [
-      "exec",
-      "-e",
-      `PGPASSWORD=${params.password}`,
-      params.containerName,
-      "pg_dump",
+    const useDocker = params.containerName.trim().length > 0;
+
+    const command = useDocker
+      ? "docker"
+      : (process.env.PG_DUMP_PATH ?? "pg_dump");
+
+    const dumpArgs = [
       "-U",
       params.username,
       "-d",
@@ -123,8 +144,23 @@ function runDockerPgDump(params: {
       "--no-acl",
     ];
 
-    const child = spawn("docker", args, {
+    const args = useDocker
+      ? [
+          "exec",
+          "-e",
+          `PGPASSWORD=${params.password}`,
+          params.containerName.trim(),
+          "pg_dump",
+          ...dumpArgs,
+        ]
+      : ["-h", params.host, "-p", params.port, ...dumpArgs];
+
+    const child = spawn(command, args, {
       stdio: ["ignore", "pipe", "pipe"],
+      /* เรียกตรงต้องส่งรหัสผ่านทาง env — ห้ามใส่ใน argv เพราะโผล่ในรายการโปรเซส */
+      env: useDocker
+        ? process.env
+        : { ...process.env, PGPASSWORD: params.password },
     });
 
     const output = createWriteStream(params.outputFile);
@@ -173,14 +209,20 @@ async function backupDatabase(params: {
 
   console.log("Backing up PostgreSQL database...");
   console.log(`Database: ${params.databaseConfig.database}`);
-  console.log(`Container: ${params.containerName}`);
+  console.log(
+    params.containerName.trim()
+      ? `Container: ${params.containerName}`
+      : `Host: ${params.databaseConfig.host}:${params.databaseConfig.port} (pg_dump บนเครื่อง)`,
+  );
   console.log(`Output: ${filePath}`);
 
-  await runDockerPgDump({
+  await runPgDump({
     containerName: params.containerName,
     database: params.databaseConfig.database,
     username: params.databaseConfig.username,
     password: params.databaseConfig.password,
+    host: params.databaseConfig.host,
+    port: params.databaseConfig.port,
     outputFile: filePath,
   });
 
