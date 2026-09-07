@@ -75,9 +75,22 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "testflight": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hr.tjc.co.th/api",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "testflight": {
+      "ios": {}
+    }
   }
 }
