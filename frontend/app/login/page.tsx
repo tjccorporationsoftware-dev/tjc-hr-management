@@ -35,17 +35,18 @@ import { getDefaultDashboardPath } from "@/lib/default-dashboard";
  * 1440px ขึ้นไป คอลัมน์เดียวจะเหลือพื้นที่ว่างสองข้างเป็นบริเวณกว้าง อ่านเป็น
  * หน้าที่ยังโหลดไม่เสร็จ — จอนี้จึงวางสองคอลัมน์แล้วจัดทั้งก้อนไว้กลางจอ
  *
- *   ซ้าย  ตัวตนขององค์กร — ตรา ชื่อ หัวเรื่อง และสิ่งที่ทำได้ในระบบ
- *   ขวา   ที่ทำงานจริง — ฟอร์มกับทางออกเมื่อเข้าไม่ได้ คั่นด้วยเส้นบางเส้นเดียว
+ *   ซ้าย  ตัวตนขององค์กร — ตรา หัวเรื่อง และสิ่งที่ทำได้ในระบบ วางบนพื้นหน้า
+ *   ขวา   ที่ทำงานจริง — ฟอร์มกับทางออกเมื่อเข้าไม่ได้ อยู่บนผืนขาวที่ยกขึ้นมา
  *
- * ทั้งจอเป็นพื้นขาว ไม่มีแผ่นสีและไม่มีการ์ด — เส้นคั่นเส้นเดียวพอบอกได้แล้วว่า
- * สองฝั่งคนละหน้าที่กัน
+ * พื้นหน้าเป็นเทาอ่อน ฟอร์มเป็นผืนขาวผืนเดียวของหน้า — สองระดับนี้บอกได้เองว่า
+ * ตรงไหนคือที่ที่ต้องลงมือทำ โดยไม่ต้องมีเส้นคั่นหรือแผ่นสีมาช่วย
  *
  * สิ่งที่ยกมาจากแอปคือ **โทนและคำพูด** (ชุดสีฟ้าเดียวกัน ช่องกรอกมีไอคอนนำหน้า
  * ปุ่มมีลูกศรต่อท้าย ข้อความชุดเดียวกัน) ไม่ใช่การจัดวาง — คนที่ใช้ทั้งสองทางจะ
  * รู้สึกว่าเป็นระบบเดียวกัน โดยที่แต่ละทางยังเป็นหน้าตาที่ถูกต้องของสื่อนั้น
  *
- * จอแคบกว่า lg สองคอลัมน์ซ้อนลงมาเป็นแถวเดียว เส้นคั่นหายไปเอง
+ * จอแคบกว่า lg เหลือแค่ตรากับฟอร์ม — หัวเรื่องและรายการสามข้อถูกซ่อน เพราะมัน
+ * จะดันฟอร์มตกขอบจอ ต้องเลื่อนก่อนถึงจะเจอปุ่มเข้าสู่ระบบ
  */
 
 /** ช่องกรอกที่มีไอคอนนำหน้า — เว้นซ้ายให้ไอคอน และใช้เส้นขอบโทนฟ้าเดียวกับแอป */
@@ -166,14 +167,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-12 text-slate-900">
       {/*
         คอลัมน์ซ้ายกว้างตายตัว ไม่ใช่ 1fr — ถ้าให้มันยืดเต็มที่ว่าง ข้อความจะไป
-        กองอยู่ชิดซ้ายแล้วเหลือช่องว่างยาวก่อนถึงเส้นคั่น อ่านเป็นสองก้อนที่ไม่
+        กองอยู่ชิดซ้ายแล้วเหลือช่องว่างยาวก่อนถึงฟอร์ม อ่านเป็นสองก้อนที่ไม่
         เกี่ยวกัน พอกำหนดความกว้างแล้วจัดทั้งตารางไว้กลางจอ สองฝั่งจะอยู่ใกล้กัน
         ในระยะที่ยังแยกออกว่าคนละหน้าที่
       */}
-      <div className="grid w-full max-w-[880px] items-center gap-12 lg:grid-cols-[440px_380px] lg:justify-center lg:gap-14">
+      <div className="grid w-full max-w-[900px] items-center gap-8 lg:grid-cols-[420px_420px] lg:justify-center lg:gap-16">
         {/* ------------------------------------------------ ฝั่งซ้าย: ตัวตนองค์กร */}
         <section>
           {/*
@@ -187,42 +188,54 @@ export default function LoginPage() {
             width={1235}
             height={719}
             priority
-            className="h-[72px] w-auto"
+            className="mx-auto h-[60px] w-auto lg:mx-0 lg:h-[72px]"
           />
 
           {/*
-            ไม่บังคับขึ้นบรรทัดเอง — ความกว้างของคอลัมน์เปลี่ยนตามจอ การใส่ <br />
-            ทำให้บางความกว้างมีคำเดียวตกไปอยู่บรรทัดสุดท้าย ปล่อยให้ text-balance
-            เกลี่ยความยาวสองบรรทัดให้เท่า ๆ กันเองดีกว่า
+            จอเล็กเห็นแค่ตรากับฟอร์ม — ถ้าปล่อยหัวเรื่องกับรายการสามข้อไว้ด้วย
+            มันจะดันฟอร์มตกขอบจอ ต้องเลื่อนก่อนถึงจะเจอปุ่มเข้าสู่ระบบ
+            สามข้อนี้เป็นของที่อ่านผ่าน ๆ ไม่ใช่ของที่คนเปิดหน้านี้มาเพื่อทำ
           */}
-          <h2 className="mt-8 text-[30px] font-bold leading-[1.3] tracking-tight text-balance text-slate-950 xl:text-[33px]">
-            เวลาทำงาน คำขอ และเงินเดือน อยู่ในที่เดียวกัน
-          </h2>
+          <div className="hidden lg:block">
+            {/*
+              ไม่บังคับขึ้นบรรทัดเอง — ความกว้างของคอลัมน์เปลี่ยนตามจอ การใส่ <br />
+              ทำให้บางความกว้างมีคำเดียวตกไปอยู่บรรทัดสุดท้าย ปล่อยให้ text-balance
+              เกลี่ยความยาวสองบรรทัดให้เท่า ๆ กันเองดีกว่า
+            */}
+            <h2 className="mt-8 text-[30px] font-bold leading-[1.3] tracking-tight text-balance text-slate-950 xl:text-[33px]">
+              เวลาทำงาน คำขอ และเงินเดือน อยู่ในที่เดียวกัน
+            </h2>
 
-          <ul className="mt-8 space-y-5">
-            {HIGHLIGHTS.map(({ icon: Icon, title, detail }) => (
-              <li key={title} className="flex items-start gap-3.5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-brand-700/8 text-brand-700">
-                  <Icon className="h-[18px] w-[18px]" />
-                </span>
+            <ul className="mt-8 space-y-5">
+              {HIGHLIGHTS.map(({ icon: Icon, title, detail }) => (
+                <li key={title} className="flex items-start gap-3.5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-brand-700/8 text-brand-700">
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
 
-                <div className="min-w-0 pt-0.5">
-                  <div className="text-[14px] font-semibold text-slate-900">
-                    {title}
+                  <div className="min-w-0 pt-0.5">
+                    <div className="text-[14px] font-semibold text-slate-900">
+                      {title}
+                    </div>
+                    <div className="mt-0.5 text-[12.5px] leading-[18px] text-slate-500">
+                      {detail}
+                    </div>
                   </div>
-                  <div className="mt-0.5 text-[12.5px] leading-[18px] text-slate-500">
-                    {detail}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         {/* ------------------------------------------------------ ฝั่งขวา: ฟอร์ม */}
-        {/* เส้นคั่นบาง ๆ แทนพื้นสี — พอไม่มีแผ่นสีแล้วสองคอลัมน์ต้องมีอะไรบอกว่าคนละส่วนกัน */}
-        <section className="lg:border-l lg:border-slate-200 lg:pl-14">
-          <div className="mx-auto w-full max-w-[380px]">
+        {/*
+          ฟอร์มอยู่บนผืนขาวที่ยกขึ้นจากพื้นเทาอ่อนของหน้า — ก่อนหน้านี้ทั้งหน้าเป็น
+          สีขาวหมดแล้วคั่นสองฝั่งด้วยเส้นบางเส้นเดียว ผลคือฟอร์มลอยอยู่บนที่ว่าง
+          ไม่มีอะไรบอกว่าตรงไหนคือที่ที่ต้องลงมือทำ พื้นที่ต่างระดับกันบอกได้
+          โดยไม่ต้องมีเส้น และเป็นผืนขาวผืนเดียวของหน้าตามกติกาของระบบ
+        */}
+        <section className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
+          <div className="mx-auto w-full max-w-[356px]">
             {step === "credentials" ? (
               <>
                 {/*
