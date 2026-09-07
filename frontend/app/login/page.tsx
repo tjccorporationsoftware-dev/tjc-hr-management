@@ -167,9 +167,15 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-slate-900">
-      <div className="grid w-full max-w-[1040px] items-center gap-14 lg:grid-cols-[1fr_390px] lg:gap-16">
+      {/*
+        คอลัมน์ซ้ายกว้างตายตัว ไม่ใช่ 1fr — ถ้าให้มันยืดเต็มที่ว่าง ข้อความจะไป
+        กองอยู่ชิดซ้ายแล้วเหลือช่องว่างยาวก่อนถึงเส้นคั่น อ่านเป็นสองก้อนที่ไม่
+        เกี่ยวกัน พอกำหนดความกว้างแล้วจัดทั้งตารางไว้กลางจอ สองฝั่งจะอยู่ใกล้กัน
+        ในระยะที่ยังแยกออกว่าคนละหน้าที่
+      */}
+      <div className="grid w-full max-w-[880px] items-center gap-12 lg:grid-cols-[440px_380px] lg:justify-center lg:gap-14">
         {/* ------------------------------------------------ ฝั่งซ้าย: ตัวตนองค์กร */}
-        <section className="max-w-[460px]">
+        <section>
           {/*
             ใช้โลโก้แนวนอนที่มีชื่ออยู่ในรูปแล้ว จึงไม่ต้องเขียนชื่อซ้ำข้าง ๆ อีก
             (ไอคอนสี่เหลี่ยมยังใช้ในเมนูข้างกับ favicon ซึ่งเป็นที่ที่รูปต้องเล็ก
@@ -215,8 +221,8 @@ export default function LoginPage() {
 
         {/* ------------------------------------------------------ ฝั่งขวา: ฟอร์ม */}
         {/* เส้นคั่นบาง ๆ แทนพื้นสี — พอไม่มีแผ่นสีแล้วสองคอลัมน์ต้องมีอะไรบอกว่าคนละส่วนกัน */}
-        <section className="lg:border-l lg:border-slate-200 lg:pl-16">
-          <div className="mx-auto w-full max-w-[390px]">
+        <section className="lg:border-l lg:border-slate-200 lg:pl-14">
+          <div className="mx-auto w-full max-w-[380px]">
             {step === "credentials" ? (
               <>
                 {/*
