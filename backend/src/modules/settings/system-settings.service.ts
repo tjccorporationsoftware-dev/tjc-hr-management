@@ -181,7 +181,7 @@ const HOLIDAY_SWAP_SCOPE_TYPES: AttendanceHolidaySwapScopeType[] = ['COMPANY', '
 const WEEKDAY_BY_UTC_DAY: HolidayWeekday[] = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 const DEFAULT_SYSTEM_SETTINGS: SystemSettingsValue = {
-  organizationName: 'HR Workforce Management System',
+  organizationName: 'HR-TJC GROUP',
   timezone: 'Asia/Bangkok',
   locale: 'th-TH',
   dateFormat: 'DD/MM/YYYY พ.ศ.',

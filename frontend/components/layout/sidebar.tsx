@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -51,13 +52,22 @@ function getGroupLinkItems(items: NavigationItem[]): NavigationItem[] {
 function BrandBlock() {
   return (
     <div className="flex h-20 shrink-0 items-center gap-3 border-b border-slate-300 px-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-[17px] font-bold tracking-[-0.04em] text-white">
-        HR
-      </span>
+      {/*
+       * ใช้ตัวสัญลักษณ์อย่างเดียว ไม่ใช้โลโก้เต็มที่มีข้อความอยู่ในรูป
+       * เพราะข้อความในรูปจะเล็กจนอ่านไม่ออกที่ความสูง 44px และคมชัดสู้ตัวอักษรจริงไม่ได้
+       */}
+      <Image
+        src="/logo/mark.png"
+        alt=""
+        width={1429}
+        height={1429}
+        priority
+        className="h-11 w-11 shrink-0 object-contain"
+      />
 
       <div className="min-w-0">
         <div className="truncate text-[15.5px] font-bold leading-tight tracking-tight text-slate-950 3xl:text-[16.5px]">
-          HR Workforce
+          HR-TJC GROUP
         </div>
         <div className="mt-1 truncate text-[10.5px] font-semibold uppercase leading-tight tracking-[0.16em] text-slate-400">
           Management System

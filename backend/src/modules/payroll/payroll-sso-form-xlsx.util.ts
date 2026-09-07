@@ -77,7 +77,7 @@ function identityNo(row: SsoFormRow) {
 export async function generateSsoFormXlsx(input: SsoFormInput) {
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = 'HR Workforce Management System';
+  workbook.creator = 'HR-TJC GROUP';
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(sheetName(input), {

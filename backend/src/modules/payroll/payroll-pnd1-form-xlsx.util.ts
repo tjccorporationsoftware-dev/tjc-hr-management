@@ -34,7 +34,7 @@ function border(): Partial<ExcelJS.Borders> {
 export async function generatePnd1FormXlsx(form: Pnd1Form) {
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = 'HR Workforce Management System';
+  workbook.creator = 'HR-TJC GROUP';
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(form.company.branchNo || '00000');

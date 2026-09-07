@@ -72,7 +72,7 @@ type SystemSettingsDraft = {
 };
 
 const defaultSettings: SystemSettingsDraft = {
-  organizationName: "HR Workforce Management System",
+  organizationName: "HR-TJC GROUP",
   timezone: "Asia/Bangkok",
   locale: "th-TH",
   dateFormat: "DD/MM/YYYY พ.ศ.",

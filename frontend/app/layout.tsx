@@ -18,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "HR Workforce Management System",
+  title: "HR-TJC GROUP",
   description: "ระบบบริหารจัดการบุคลากรและงาน HR",
 };
 

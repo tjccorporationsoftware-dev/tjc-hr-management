@@ -2554,7 +2554,7 @@ export class ReportsService {
   }) {
     const workbook = new ExcelJS.Workbook();
 
-    workbook.creator = 'HR Workforce Management System';
+    workbook.creator = 'HR-TJC GROUP';
     workbook.created = new Date();
     workbook.modified = new Date();
 

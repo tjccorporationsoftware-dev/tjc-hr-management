@@ -49,7 +49,7 @@ export async function generateWorkmenFormXlsx(
 ) {
   const workbook = new ExcelJS.Workbook();
 
-  workbook.creator = 'HR Workforce Management System';
+  workbook.creator = 'HR-TJC GROUP';
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(sheetName(report));

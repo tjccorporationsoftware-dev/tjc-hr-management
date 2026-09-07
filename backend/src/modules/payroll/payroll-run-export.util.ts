@@ -739,7 +739,7 @@ export async function generatePayrollRunExcel(
   run: ExportPayrollRun,
 ): Promise<PayrollRunExportResult> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'HR Workforce Management System';
+  workbook.creator = 'HR-TJC GROUP';
   workbook.created = new Date();
 
   buildDetailSheet(run, workbook);

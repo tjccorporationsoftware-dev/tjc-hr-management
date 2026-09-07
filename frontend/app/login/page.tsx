@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -9,7 +10,6 @@ import {
   KeyRound,
   Loader2,
   LockKeyhole,
-  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
@@ -111,10 +111,14 @@ export default function LoginPage() {
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] max-w-[1280px] items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
         <section className="hidden lg:block">
           <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm">
-            <div className="mb-8 inline-flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
-              <ShieldCheck className="h-4 w-4" />
-              HR Workforce Management System
-            </div>
+            <Image
+              src="/logo/logo-full.png"
+              alt="HR-TJC GROUP"
+              width={1235}
+              height={719}
+              priority
+              className="mb-8 h-16 w-auto"
+            />
 
             <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-slate-950">
               ระบบบริหารงานบุคคลสำหรับองค์กรยุคใหม่
@@ -146,6 +150,16 @@ export default function LoginPage() {
         </section>
 
         <section className="mx-auto w-full max-w-[460px]">
+          {/* จอเล็กซ่อนแผงซ้ายทั้งแผง โลโก้จึงต้องมาโผล่เหนือกล่องล็อกอินแทน */}
+          <Image
+            src="/logo/logo-full.png"
+            alt="HR-TJC GROUP"
+            width={1235}
+            height={719}
+            priority
+            className="mx-auto mb-6 h-14 w-auto lg:hidden"
+          />
+
           <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             {step === "credentials" ? (
               <>
