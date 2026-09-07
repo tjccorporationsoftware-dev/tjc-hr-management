@@ -17,6 +17,14 @@ import { randomUUID } from 'crypto';
 const REDACTED_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
+  /*
+   * ชื่อ header ต้องตรงกับที่ DevicePushGuard อ่านจริง (`x-device-token`)
+   * ของเดิมเขียน `x-device-secret` ซึ่งไม่มีใครส่งมา โทเคนของเครื่องสแกนจึงถูก
+   * เขียนลง log ทุกคำขอ — ใครอ่าน log ได้ก็สร้างรายการลงเวลาปลอมให้พนักงาน
+   * คนไหนก็ได้ และรายการนั้นไหลต่อไปถึงการคำนวณเงินเดือน
+   * เก็บชื่อเดิมไว้ด้วยเผื่อมีของเก่าค้างอยู่ ปิดบังเกินไม่เสียหาย
+   */
+  'req.headers["x-device-token"]',
   'req.headers["x-device-secret"]',
   'res.headers["set-cookie"]',
   // body ของ login/เปลี่ยนรหัสผ่าน
