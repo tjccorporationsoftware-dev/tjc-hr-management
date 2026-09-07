@@ -29,20 +29,23 @@ import { getDefaultDashboardPath } from "@/lib/default-dashboard";
  * จอแรกที่พนักงานเห็น และเป็นจอเดียวที่คนนอกองค์กรเปิดถึง — ต้องบอกให้ได้ใน
  * สองวินาทีว่านี่คือระบบของบริษัทไหน
  *
- * ## ทำไมเป็นสองฝั่ง ไม่ใช่คอลัมน์เดียวกลางจอ
+ * ## ทำไมเป็นสองคอลัมน์ ไม่ใช่คอลัมน์เดียวกลางจอ
  *
  * แอปมือถือใช้คอลัมน์เดียวเพราะจอกว้าง 390px ไม่มีทางเลือกอื่น แต่บนเว็บที่กว้าง
- * 1440px ขึ้นไป คอลัมน์เดียวกลางจอจะเหลือพื้นที่ขาวว่างสองข้างเป็นบริเวณกว้าง
- * อ่านเป็นหน้าที่ยังโหลดไม่เสร็จ — จอนี้จึงแบ่งสองฝั่งตามแบบของเว็บ
+ * 1440px ขึ้นไป คอลัมน์เดียวจะเหลือพื้นที่ว่างสองข้างเป็นบริเวณกว้าง อ่านเป็น
+ * หน้าที่ยังโหลดไม่เสร็จ — จอนี้จึงวางสองคอลัมน์แล้วจัดทั้งก้อนไว้กลางจอ
  *
- *   ฝั่งซ้าย  พื้นฟ้าไล่สี = ตัวตนขององค์กร ตรา ชื่อ และสิ่งที่ทำได้ในระบบ
- *   ฝั่งขวา  พื้นขาว = ที่ทำงานจริง มีแต่ฟอร์มกับทางออกเมื่อเข้าไม่ได้
+ *   ซ้าย  ตัวตนขององค์กร — ตรา ชื่อ หัวเรื่อง และสิ่งที่ทำได้ในระบบ
+ *   ขวา   ที่ทำงานจริง — ฟอร์มกับทางออกเมื่อเข้าไม่ได้ คั่นด้วยเส้นบางเส้นเดียว
+ *
+ * ทั้งจอเป็นพื้นขาว ไม่มีแผ่นสีและไม่มีการ์ด — เส้นคั่นเส้นเดียวพอบอกได้แล้วว่า
+ * สองฝั่งคนละหน้าที่กัน
  *
  * สิ่งที่ยกมาจากแอปคือ **โทนและคำพูด** (ชุดสีฟ้าเดียวกัน ช่องกรอกมีไอคอนนำหน้า
  * ปุ่มมีลูกศรต่อท้าย ข้อความชุดเดียวกัน) ไม่ใช่การจัดวาง — คนที่ใช้ทั้งสองทางจะ
  * รู้สึกว่าเป็นระบบเดียวกัน โดยที่แต่ละทางยังเป็นหน้าตาที่ถูกต้องของสื่อนั้น
  *
- * จอแคบกว่า lg ฝั่งซ้ายยุบเหลือแถบตราเตี้ย ๆ ด้านบน แล้วฟอร์มไหลเต็มความกว้าง
+ * จอแคบกว่า lg สองคอลัมน์ซ้อนลงมาเป็นแถวเดียว เส้นคั่นหายไปเอง
  */
 
 /** ช่องกรอกที่มีไอคอนนำหน้า — เว้นซ้ายให้ไอคอน และใช้เส้นขอบโทนฟ้าเดียวกับแอป */
@@ -163,110 +166,57 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen bg-white text-slate-900">
-      {/* ------------------------------------------------ ฝั่งซ้าย: ตัวตนองค์กร */}
-      <section className="relative hidden overflow-hidden bg-brand-700 lg:flex lg:w-[46%] lg:shrink-0 lg:flex-col lg:justify-between xl:w-[48%]">
-        {/*
-          ก้อนแสงสองก้อนบนพื้นฟ้า ทำให้พื้นไม่เป็นสีตันแผ่นเดียว
-          ต้องเป็น closest-side ไม่งั้นไล่สีไปจบที่มุมกล่อง แล้วกลางขอบจะเหลือสี
-          จนเห็นเป็นสี่เหลี่ยมซ้อนอยู่บนพื้น
-        */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-28 -top-28 h-[460px] w-[460px]"
-          style={{
-            background:
-              "radial-gradient(circle closest-side, rgba(255,255,255,0.20), rgba(255,255,255,0))",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 -right-24 h-[560px] w-[560px]"
-          style={{
-            background:
-              "radial-gradient(circle closest-side, rgba(125,211,252,0.30), rgba(125,211,252,0))",
-          }}
-        />
-
-        <div className="relative flex items-center gap-3 px-12 pt-11">
+    <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-slate-900">
+      <div className="grid w-full max-w-[1040px] items-center gap-14 lg:grid-cols-[1fr_390px] lg:gap-16">
+        {/* ------------------------------------------------ ฝั่งซ้าย: ตัวตนองค์กร */}
+        <section className="max-w-[460px]">
+          {/*
+            ใช้โลโก้แนวนอนที่มีชื่ออยู่ในรูปแล้ว จึงไม่ต้องเขียนชื่อซ้ำข้าง ๆ อีก
+            (ไอคอนสี่เหลี่ยมยังใช้ในเมนูข้างกับ favicon ซึ่งเป็นที่ที่รูปต้องเล็ก
+            จนอ่านตัวหนังสือในรูปไม่ออก)
+          */}
           <Image
-            src="/logo/app-icon.png"
-            alt=""
-            width={1024}
-            height={1024}
+            src="/logo/wordmark.png"
+            alt="HR-TJC GROUP"
+            width={1235}
+            height={719}
             priority
-            className="h-12 w-12 shrink-0 object-contain"
+            className="h-[72px] w-auto"
           />
 
-          <div>
-            <div className="text-[15.5px] font-bold leading-tight tracking-tight text-white">
-              HR-TJC GROUP
-            </div>
-            <div className="mt-0.5 text-[10.5px] font-semibold uppercase leading-tight tracking-[0.16em] text-white/55">
-              Management System
-            </div>
-          </div>
-        </div>
-
-        <div className="relative px-12">
           {/*
-            ไม่ขึ้นบรรทัดเอง — ความกว้างของฝั่งซ้ายเปลี่ยนตามจอ การบังคับ <br />
+            ไม่บังคับขึ้นบรรทัดเอง — ความกว้างของคอลัมน์เปลี่ยนตามจอ การใส่ <br />
             ทำให้บางความกว้างมีคำเดียวตกไปอยู่บรรทัดสุดท้าย ปล่อยให้ text-balance
             เกลี่ยความยาวสองบรรทัดให้เท่า ๆ กันเองดีกว่า
           */}
-          <h2 className="max-w-[460px] text-[32px] font-bold leading-[1.3] tracking-tight text-balance text-white xl:text-[35px]">
+          <h2 className="mt-8 text-[30px] font-bold leading-[1.3] tracking-tight text-balance text-slate-950 xl:text-[33px]">
             เวลาทำงาน คำขอ และเงินเดือน อยู่ในที่เดียวกัน
           </h2>
 
-          <ul className="mt-9 max-w-[420px] space-y-5">
+          <ul className="mt-8 space-y-5">
             {HIGHLIGHTS.map(({ icon: Icon, title, detail }) => (
               <li key={title} className="flex items-start gap-3.5">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-white/12 text-white">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[13px] bg-brand-700/8 text-brand-700">
                   <Icon className="h-[18px] w-[18px]" />
                 </span>
 
                 <div className="min-w-0 pt-0.5">
-                  <div className="text-[14px] font-semibold text-white">
+                  <div className="text-[14px] font-semibold text-slate-900">
                     {title}
                   </div>
-                  <div className="mt-0.5 text-[12.5px] leading-[18px] text-white/60">
+                  <div className="mt-0.5 text-[12.5px] leading-[18px] text-slate-500">
                     {detail}
                   </div>
                 </div>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
 
-        <div className="relative px-12 pb-10 text-[11px] text-white/40">
-          © {new Date().getFullYear()} TJC GROUP
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------- ฝั่งขวา: ฟอร์ม */}
-      <section className="flex flex-1 flex-col">
-        {/* จอแคบไม่มีฝั่งซ้าย ตราจึงต้องมาอยู่เป็นแถบบนสุดแทน */}
-        <div className="flex items-center gap-3 border-b border-slate-200 px-6 py-4 lg:hidden">
-          <Image
-            src="/logo/app-icon.png"
-            alt=""
-            width={1024}
-            height={1024}
-            priority
-            className="h-10 w-10 shrink-0 object-contain"
-          />
-          <div>
-            <div className="text-sm font-bold leading-tight tracking-tight text-slate-950">
-              HR-TJC GROUP
-            </div>
-            <div className="mt-0.5 text-[10px] font-semibold uppercase leading-tight tracking-[0.16em] text-slate-400">
-              Management System
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-1 items-center justify-center px-6 py-12">
-          <div className="w-full max-w-[380px]">
+        {/* ------------------------------------------------------ ฝั่งขวา: ฟอร์ม */}
+        {/* เส้นคั่นบาง ๆ แทนพื้นสี — พอไม่มีแผ่นสีแล้วสองคอลัมน์ต้องมีอะไรบอกว่าคนละส่วนกัน */}
+        <section className="lg:border-l lg:border-slate-200 lg:pl-16">
+          <div className="mx-auto w-full max-w-[390px]">
             {step === "credentials" ? (
               <>
                 {/*
@@ -479,8 +429,8 @@ export default function LoginPage() {
               </>
             )}
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }
