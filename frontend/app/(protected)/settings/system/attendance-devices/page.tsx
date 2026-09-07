@@ -1,0 +1,6 @@
+import { redirect } from "next/navigation";
+
+/** ยุบไปเป็นแท็บในหน้า "การลงเวลา" แล้ว */
+export default function AttendanceDevicesRedirectPage() {
+  redirect("/settings/attendance?tab=devices");
+}

@@ -1,0 +1,17 @@
+# บังคับ LF ใน repo เพื่อไม่ให้ diff เพี้ยนเวลาสลับ Windows/CI (ubuntu)
+* text=auto eol=lf
+
+# ไฟล์ binary — ห้าม normalize
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.dump binary
+*.woff binary
+*.woff2 binary
+
+# lockfile — ไม่ต้องแสดง diff ในรีวิว
+package-lock.json linguist-generated=true -diff

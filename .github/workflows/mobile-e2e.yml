@@ -1,0 +1,124 @@
+name: Mobile E2E
+
+# แยกจาก CI หลักโดยตั้งใจ
+#
+# flow ชุดนี้ต้องบูต Android emulator และ build แอปแบบ native ซึ่งใช้เวลา
+# 20–30 นาทีต่อรอบ การเอาไปต่อท้าย CI ปกติจะทำให้ทุก PR ช้าลงเป็นสิบเท่า
+# จนคนเลิกรอผล แล้วกลายเป็นด่านที่ไม่มีใครอ่าน
+#
+# จึงรันสองกรณี: กลางคืนทุกวัน และตอนที่คนสั่งเองก่อนปล่อยรุ่น
+on:
+  schedule:
+    # ตีสองครึ่งเวลาไทย (19:30 UTC) — หลังทีมเลิกงานและก่อนเริ่มวันใหม่
+    - cron: '30 19 * * *'
+  workflow_dispatch:
+    inputs:
+      flow:
+        description: 'ชื่อไฟล์ flow ที่จะรัน (เว้นว่าง = ทั้งหมด)'
+        required: false
+        type: string
+
+concurrency:
+  group: mobile-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    name: Android E2E
+    # ต้องใช้ ubuntu ที่เปิด KVM ได้ ไม่งั้น emulator ช้าจนหมดเวลา
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        working-directory: employee-mobile
+
+    env:
+      APP_ID: com.tjc.employeemobile.staging
+      EXPO_PUBLIC_APP_ENV: staging
+      EXPO_PUBLIC_API_BASE_URL: ${{ secrets.MOBILE_E2E_API_BASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: ตรวจว่ามีข้อมูลบัญชีทดสอบครบ
+        # ล้มตั้งแต่ต้นดีกว่าปล่อยให้ emulator บูตครบ 20 นาทีแล้วค่อยพบว่า
+        # ไม่มีรหัสผ่าน — ข้อความ error ของ Maestro ตอนนั้นอ่านไม่รู้เรื่อง
+        run: |
+          missing=""
+          [ -z "${{ secrets.MOBILE_E2E_API_BASE_URL }}" ] && missing="$missing MOBILE_E2E_API_BASE_URL"
+          [ -z "${{ secrets.MOBILE_E2E_EMAIL }}" ] && missing="$missing MOBILE_E2E_EMAIL"
+          [ -z "${{ secrets.MOBILE_E2E_PASSWORD }}" ] && missing="$missing MOBILE_E2E_PASSWORD"
+          [ -z "${{ secrets.MOBILE_E2E_PIN }}" ] && missing="$missing MOBILE_E2E_PIN"
+          if [ -n "$missing" ]; then
+            echo "ยังไม่ได้ตั้ง secret เหล่านี้:$missing"
+            echo "ดูวิธีเตรียมบัญชีทดสอบใน employee-mobile/e2e/README.md"
+            exit 1
+          fi
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: employee-mobile/package-lock.json
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prebuild Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build debug APK
+        working-directory: employee-mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: เปิด emulator แล้วรัน flow
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          # ปิด animation ทั้งหมด — ไม่ได้ทำให้เร็วขึ้นอย่างเดียว แต่ตัด
+          # ความไม่แน่นอนของการจับ element ระหว่างที่จอกำลังเลื่อน
+          disable-animations: true
+          working-directory: employee-mobile
+          script: |
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            maestro test \
+              -e APP_ID=$APP_ID \
+              -e EMAIL='${{ secrets.MOBILE_E2E_EMAIL }}' \
+              -e PASSWORD='${{ secrets.MOBILE_E2E_PASSWORD }}' \
+              -e PIN='${{ secrets.MOBILE_E2E_PIN }}' \
+              -e MANAGER_EMAIL='${{ secrets.MOBILE_E2E_MANAGER_EMAIL }}' \
+              -e MANAGER_PASSWORD='${{ secrets.MOBILE_E2E_MANAGER_PASSWORD }}' \
+              -e EXEC_EMAIL='${{ secrets.MOBILE_E2E_EXEC_EMAIL }}' \
+              -e EXEC_PASSWORD='${{ secrets.MOBILE_E2E_EXEC_PASSWORD }}' \
+              --format junit \
+              --output maestro-report.xml \
+              e2e/flows/${{ inputs.flow }}
+
+      - name: เก็บผลและภาพหน้าจอตอนล้ม
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-report
+          path: |
+            employee-mobile/maestro-report.xml
+            ~/.maestro/tests/**
+          retention-days: 14

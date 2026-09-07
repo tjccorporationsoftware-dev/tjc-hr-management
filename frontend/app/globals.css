@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --font-main:
+    var(--font-thai, "Anuphan"),
+    var(--font-en, "Inter"),
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  --font-number:
+    var(--font-en, "Inter"),
+    var(--font-thai, "Anuphan"),
+    system-ui,
+    sans-serif;
+}
+
+@theme inline {
+  --font-sans: var(--font-main);
+}
+
+/**
+ * สีแบรนด์ของโซนเงินเดือน
+ * -----------------------
+ * ใช้เป็นสีนำสายตาจุดเดียว: ปุ่มหลัก แท็บที่เลือก ตัวเลขที่เน้น และลิงก์
+ * เปลี่ยนเฉดทั้งโซนได้ที่นี่ที่เดียว — อย่าไปฮาร์ดโค้ด blue-600 ในหน้า
+ *
+ * ค่าที่ใช้ยกมาจากสเกล blue ของ Tailwind ตรง ๆ เพื่อให้เข้ากับ ::selection
+ * และชุด UI กลางที่หน้าอื่น (ESS/Manager/HR) ยังใช้อยู่
+ */
+@theme {
+  /*
+    จอเดสก์ท็อปกว้าง ๆ (2K ขึ้นไป) ตัวหนังสือขนาดเดียวกับโน้ตบุ๊กจะดูเล็กเกินไป
+    เบรกพอยต์นี้ใช้ไล่ขนาดตัวอักษร ปุ่ม และระยะห่างของชุด kit ขึ้นทั้งชุด
+  */
+  --breakpoint-3xl: 1800px;
+  --breakpoint-4xl: 2200px;
+
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-family: var(--font-main) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-main) !important;
+  font-size: 14px;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  font-feature-settings:
+    "liga" 1,
+    "kern" 1,
+    "tnum" 1;
+}
+
+body * {
+  font-family: var(--font-main) !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-main) !important;
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+svg text,
+.recharts-wrapper,
+.recharts-wrapper * {
+  font-family: var(--font-main) !important;
+}
+
+::selection {
+  background: #dbeafe;
+  color: #0f172a;
+}
+
+/**
+ * จังหวะเข้าใช้ร่วมกันของป๊อปอัพทั้งระบบ
+ * สั้นและเบา ให้รู้สึกว่ากล่อง "โผล่มา" ไม่ใช่กระพริบเปลี่ยนภาพ
+ */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-overlay-in {
+  animation: overlay-in 0.15s ease-out;
+}
+
+.animate-dialog-in {
+  animation: dialog-in 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-overlay-in,
+  .animate-dialog-in {
+    animation: none;
+  }
+}
+
+.font-minimal {
+  font-family: var(--font-main) !important;
+}
+
+.heading-minimal {
+  font-family: var(--font-main) !important;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  color: #0f172a;
+}
+
+.number-minimal,
+.font-number {
+  font-family: var(--font-number) !important;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+/*
+ * สีของ toast แต่ละสถานะ
+ * ---------------------
+ * sonner โหมด richColors ระบายพื้นเต็มใบด้วยสีอิ่มจัด ซึ่งแรงกว่าโทนที่ระบบใช้
+ * แต่ถ้าปิดไปเลย toast จะเป็นพื้นขาวล้วนจนกลืนไปกับหน้าเว็บ
+ *
+ * ทางออกคือเปิด richColors ไว้แล้วเปลี่ยนค่าตัวแปรของมันเป็นเฉดอ่อน (50/200/800)
+ * ชุดเดียวกับ Notice และชิปสถานะในระบบ — ต้องทำที่นี่ไม่ใช่ที่คลาส เพราะ sonner
+ * ใส่สีผ่าน CSS variable ไม่ใช่ utility class จะส่ง className ไปทับไม่ขึ้น
+ */
+[data-sonner-toaster] {
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+  --success-text: #065f46;
+
+  --error-bg: #fff1f2;
+  --error-border: #fecdd3;
+  --error-text: #9f1239;
+
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #92400e;
+
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-text: #1e40af;
+}

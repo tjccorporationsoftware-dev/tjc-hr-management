@@ -1,0 +1,139 @@
+# =============================================================================
+# รันระบบจริง
+# =============================================================================
+#   cp backend/.env.example backend/.env   แล้วแก้ค่าให้ครบก่อน
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# ต่างจาก docker-compose.yml (ซึ่งมีแค่ฐานข้อมูล/คิว ไว้ใช้ตอนพัฒนา)
+# ไฟล์นี้รันตัวแอปจริงทั้ง backend และ frontend ด้วย
+#
+# ⚠ ก่อนขึ้นระบบจริง
+#   1. เปลี่ยนรหัสผ่านทุกตัวในไฟล์นี้และใน backend/.env
+#   2. อย่าเปิดพอร์ตฐานข้อมูล/Redis ออกสู่ภายนอก (ไฟล์นี้ผูกไว้ที่ 127.0.0.1 แล้ว)
+#   3. วาง reverse proxy ที่ทำ HTTPS ไว้หน้า frontend/backend แล้วตั้ง TRUST_PROXY=true
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: hr_postgres_prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hr_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ต้องตั้ง POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-hr_workforce}
+      TZ: Asia/Bangkok
+    # ผูกกับ localhost เท่านั้น ไม่เปิดสู่อินเทอร์เน็ต
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - hr_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hr_admin} -d ${POSTGRES_DB:-hr_workforce}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Redis — ไม่จำเป็นแล้วตั้งแต่คิวย้ายมาอยู่ในโปรเซส (QUEUE_DRIVER=memory)
+  #
+  # เก็บไว้เป็นทางถอย: ถ้าต้องรัน backend หลายตัว ให้ตั้ง QUEUE_DRIVER=redis
+  # ใน backend/.env แล้วคิวจะกลับไปวิ่งผ่านตัวนี้เหมือนเดิม
+  #
+  # ถ้าแน่ใจว่าจะรัน instance เดียวตลอด ลบ service นี้กับ depends_on ของ backend
+  # และ volume hr_redis_data ทิ้งได้ ประหยัด RAM ไปราว 50 MB
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7
+    container_name: hr_redis_prod
+    restart: unless-stopped
+    # เปิดบันทึกลงดิสก์ ไม่งั้นงานในคิวหายหมดเมื่อ Redis restart
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - hr_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hr_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Bangkok
+      PORT: 4000
+      # ชื่อ service ในเครือข่ายของ compose ไม่ใช่ localhost
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "127.0.0.1:4000:4000"
+    volumes:
+      # ไฟล์ที่ผู้ใช้อัปโหลดและระบบสร้าง ต้องอยู่นอกคอนเทนเนอร์
+      # ไม่งั้นหายทุกครั้งที่ deploy ใหม่
+      - hr_uploads:/app/uploads
+      - hr_storage:/app/storage
+      - hr_backups:/app/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # ตัวคั่นหน้าสำหรับเครื่องสแกนลายนิ้วมือ (ADMS / iclock)
+  #
+  # เครื่องสแกนตั้งค่าได้แค่ที่อยู่กับพอร์ต แนบโทเคนเองไม่ได้ ตัวนี้จึงเติมให้
+  # แล้วส่งต่อเข้า backend — รายละเอียดใน infra/nginx/README.md
+  #
+  # ยังไม่ใช้เครื่องสแกน: ลบ service นี้ทิ้ง หรือ up โดยไม่ระบุมันก็ได้
+  # แต่ถ้าปล่อยไว้แล้วไม่ตั้ง ATTENDANCE_DEVICE_PUSH_TOKEN คอนเทนเนอร์จะไม่ขึ้น
+  # ---------------------------------------------------------------------------
+  device-proxy:
+    image: nginx:1.27-alpine
+    container_name: hr_device_proxy
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Bangkok
+      # ต้องเป็นค่าเดียวกับใน backend/.env ไม่ตรงกัน = backend ตอบ 401 เงียบ ๆ
+      ATTENDANCE_DEVICE_PUSH_TOKEN: ${ATTENDANCE_DEVICE_PUSH_TOKEN:?ต้องตั้ง ATTENDANCE_DEVICE_PUSH_TOKEN ให้ตรงกับ backend/.env}
+    volumes:
+      - ./infra/nginx/attendance-device-proxy.conf.template:/etc/nginx/templates/attendance-device-proxy.conf.template:ro
+    # เครื่องสแกนพูด HTTP ล้วน **ห้ามเปิดพอร์ตนี้ออกอินเทอร์เน็ต**
+    # ให้อยู่วงเดียวกับเครื่อง หรือลากผ่าน VPN
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # ฝังลงบันเดิลตอน build เปลี่ยนตอนรันไม่ได้
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?ต้องตั้ง NEXT_PUBLIC_API_BASE_URL}
+    container_name: hr_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Bangkok
+      PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  hr_postgres_data:
+  hr_redis_data:
+  hr_uploads:
+  hr_storage:
+  hr_backups:

@@ -1,0 +1,14 @@
+# ไม่ส่งของพวกนี้เข้า build context
+node_modules
+.next
+out
+coverage
+.env
+.env.*
+!.env.production.example
+*.log
+tsconfig.tsbuildinfo
+
+# ผลลัพธ์การทดสอบ
+playwright-report
+test-results

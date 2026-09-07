@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: hr_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hr_admin
+      POSTGRES_PASSWORD: hr_password
+      POSTGRES_DB: hr_workforce
+    ports:
+      - "5433:5432"
+    volumes:
+      - hr_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: hr_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+# หมายเหตุ: เคยมี MinIO อยู่ตรงนี้ แต่ไม่มีโค้ดเรียกใช้เลยแม้แต่บรรทัดเดียว
+# ระบบเก็บไฟล์ลงดิสก์ผ่าน UPLOAD_DIR / STORAGE_DIR จึงถอดออกเพื่อไม่ให้เข้าใจผิด
+# ว่าไฟล์ถูกเก็บบน object storage แล้ว
+#
+# ถ้าต้องรันหลาย instance ให้ mount UPLOAD_DIR/STORAGE_DIR เป็นที่เก็บร่วม
+# (NFS / EFS / Azure Files) ดูตัวอย่าง volume ใน docker-compose.prod.yml
+
+volumes:
+  hr_postgres_data:

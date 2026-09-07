@@ -1,0 +1,22 @@
+{
+  "folders": [
+    { "name": "employee-mobile", "path": "employee-mobile" },
+    { "name": "backend", "path": "backend" },
+    { "name": "frontend", "path": "frontend" }
+  ],
+  "settings": {
+    // เปิดรีโปนี้ด้วยไฟล์ workspace แทนการเปิดโฟลเดอร์ราก
+    //
+    // สามแพ็กเกจใช้ TypeScript คนละเวอร์ชัน (แอปมือถือ 6.0.x · backend/frontend 5.9.x)
+    // เปิดเป็น multi-root แล้ว VS Code จะอ่าน .vscode/settings.json ของแต่ละโฟลเดอร์
+    // และใช้ตัวคอมไพเลอร์ให้ตรงกับที่แพ็กเกจนั้นติดตั้งไว้จริง
+    //
+    // ถ้าเปิดโฟลเดอร์รากเฉย ๆ ตัวแก้ไขจะใช้ TypeScript ตัวที่ฝังมากับตัวมันเอง
+    // ตัวเดียวกับทุกแพ็กเกจ แล้วจะขึ้นเส้นแดงใน tsconfig ของแอปมือถือ
+    "files.exclude": {
+      "**/.expo": true,
+      "**/dist": true,
+      "**/node_modules": true
+    }
+  }
+}

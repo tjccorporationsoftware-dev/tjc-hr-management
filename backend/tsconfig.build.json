@@ -1,0 +1,35 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /*
+     * บังคับรากของโค้ดที่คอมไพล์ให้เป็น src เท่านั้น
+     *
+     * ของเดิมไม่ได้ตั้งไว้ TypeScript จึงคิดรากจาก "ไฟล์ร่วมที่สูงที่สุด"
+     * ซึ่งมี prisma.config.ts อยู่ที่รากโปรเจค ผลลัพธ์เลยออกที่ dist/src/main.js
+     * ขณะที่ package.json สั่ง `node dist/main` — คือ start:prod พังมาตลอด
+     * ไม่มีใครเจอเพราะตอนพัฒนาใช้ `nest start --watch` ซึ่งไม่ผ่านทางนี้
+     */
+    "rootDir": "./src",
+
+    /*
+     * เก็บ cache ของ incremental ไว้ใน dist
+     *
+     * nest-cli ตั้ง deleteOutDir: true คือลบ dist ทิ้งก่อน build ทุกครั้ง
+     * ถ้า cache อยู่นอก dist มันจะรอดจากการลบ แล้ว tsc เห็นว่า "ไม่มีอะไรเปลี่ยน"
+     * จึงไม่ emit อะไรเลย — build จบด้วยรหัส 0 แต่ได้ dist ว่างเปล่า
+     * เจอตอนทดสอบอิมเมจ: `npm run build` ผ่าน แล้ว `node dist/main` หาไฟล์ไม่เจอ
+     *
+     * ย้ายมาไว้ใน dist ทำให้ cache ถูกลบไปพร้อมกัน คนละชะตากันไม่ได้อีก
+     */
+    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+  },
+  "exclude": [
+    "node_modules",
+    "test",
+    "dist",
+    "**/*spec.ts",
+    "scripts",
+    "prisma",
+    "prisma.config.ts"
+  ]
+}

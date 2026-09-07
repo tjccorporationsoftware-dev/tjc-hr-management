@@ -1,0 +1,106 @@
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+
+export class CreateLeavePolicyDto {
+  @IsString()
+  @IsNotEmpty()
+  companyId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  leaveTypeId!: string;
+
+  @IsOptional()
+  @IsString()
+  branchId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  employeeTypeId?: string | null;
+
+  @IsNumber()
+  @Min(0)
+  @Max(365)
+  annualQuotaDays!: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  maxConsecutiveDays?: number | null;
+
+  @IsOptional()
+  @IsBoolean()
+  allowCarryForward?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(365)
+  carryForwardLimitDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  requireApproval?: boolean;
+
+  @IsOptional()
+  @IsIn(['YEARLY', 'MONTHLY', 'PROBATION_AFTER'])
+  quotaPeriod?: 'YEARLY' | 'MONTHLY' | 'PROBATION_AFTER';
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(31)
+  monthlyAccrualDays?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  probationEligibleAfterDays?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  carryForwardExpireMonth?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  carryForwardExpireDay?: number | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  maxBackdatedDaysOverride?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(365)
+  requireAttachmentAfterDays?: number | null;
+
+  @IsOptional()
+  @IsString()
+  effectiveFrom?: string | null;
+
+  @IsOptional()
+  @IsString()
+  effectiveTo?: string | null;
+
+  @IsOptional()
+  @IsIn(['ACTIVE', 'INACTIVE'])
+  status?: 'ACTIVE' | 'INACTIVE';
+}

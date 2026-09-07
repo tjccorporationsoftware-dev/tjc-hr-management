@@ -1,0 +1,483 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "phase/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Build & Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://hr_admin:hr_password@localhost:5433/hr_workforce?schema=public
+
+      JWT_ACCESS_SECRET: ci_access_secret_abcdefghijklmnopqrstuvwxyz123456
+      JWT_REFRESH_SECRET: ci_refresh_secret_abcdefghijklmnopqrstuvwxyz123456789012345678
+
+      ACCESS_TOKEN_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+
+      FRONTEND_URL: http://localhost:3000
+
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      REDIS_PASSWORD: ""
+
+
+      SEED_ADMIN_EMAIL: admin@hr.local
+      SEED_ADMIN_PASSWORD: Admin@123456
+      SEED_ADMIN_NAME: System Administrator
+
+      LOGIN_MAX_FAILED_ATTEMPTS: 5
+      LOGIN_LOCK_MINUTES: 15
+
+      TWO_FACTOR_REQUIRED_ROLE_CODES: SYSTEM_ADMIN,HR_ADMIN,PAYROLL_ACCOUNTING
+      TWO_FACTOR_CODE_EXPIRES_MINUTES: 5
+      TWO_FACTOR_DEV_SHOW_CODE: "true"
+
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_REDIS_ENABLED: "false"
+      RATE_LIMIT_KEY_PREFIX: hr:rate-limit
+
+      TRUST_PROXY: "false"
+      REQUEST_BODY_LIMIT: 2mb
+
+      MONITORING_REDIS_CHECK_ENABLED: "false"
+      MONITORING_METRICS_TOKEN: ci_monitoring_token_abcdefghijklmnopqrstuvwxyz
+
+      BACKUP_DIR: ../backups
+      BACKUP_KEEP_DAYS: 14
+      BACKUP_INCLUDE_STORAGE: "true"
+      STORAGE_DIR: ./storage
+      POSTGRES_CONTAINER_NAME: hr_postgres
+
+      CLEANUP_STORAGE_ENABLED: "true"
+      CLEANUP_DRY_RUN_DEFAULT: "true"
+      EXPORT_FILE_KEEP_DAYS: 30
+      TEMP_FILE_KEEP_DAYS: 7
+      GENERAL_STORAGE_KEEP_DAYS: 180
+      EXPORT_STORAGE_DIR: ./storage/report-exports
+      TEMP_STORAGE_DIR: ./storage/tmp
+      CLEANUP_LOG_DIR: ../cleanup-logs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Prepare runtime folders
+        run: |
+          mkdir -p storage
+          mkdir -p storage/report-exports
+          mkdir -p storage/tmp
+          mkdir -p ../backups
+          mkdir -p ../cleanup-logs
+
+      # ต้องรันด้วย NODE_ENV=production ไม่งั้นเงื่อนไขที่มีไว้กันของขึ้นระบบจริง
+      # (ค่าลับเดาง่าย · FRONTEND_URL ชี้ localhost · cookie ไม่ secure)
+      # จะถูกข้ามทั้งหมด — ตัวตรวจผ่านทุกครั้งโดยไม่เคยตรวจอะไรเลย
+      - name: Backend production readiness check
+        run: npm run check:prod
+        env:
+          NODE_ENV: production
+          FRONTEND_URL: https://hr.example.com
+          COOKIE_SECURE: "true"
+          TRUST_PROXY: "true"
+          TWO_FACTOR_DEV_SHOW_CODE: "false"
+          # ค่าสมมติสำหรับ CI เท่านั้น — มีไว้ให้ตัวตรวจมีอะไรให้ตรวจ
+          # ของจริงบนระบบต้องมาจาก secret ไม่ใช่ไฟล์นี้
+          MONITORING_METRICS_TOKEN: ci_metrics_token_abcdefghijklmnopqrstuvwxyz012345
+          SEED_ADMIN_PASSWORD: Ci#Seed@Admin!2569_placeholder_x
+          SEED_DEMO_PASSWORD: Ci#Demo@User!2569_placeholder_x
+          UPLOAD_DIR: ./uploads
+
+      - name: Backend build
+        run: npm run build
+
+      - name: Backend tests
+        run: npm test -- --runInBand --passWithNoTests
+
+      - name: Backend npm audit
+        run: npm audit --audit-level=high
+
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    env:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000/api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Frontend build
+        run: npm run build
+
+      - name: Frontend npm audit
+        run: npm audit --audit-level=high
+
+  mobile:
+    name: Mobile Check (employee-mobile)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: employee-mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: employee-mobile/package-lock.json
+
+      - name: Install mobile dependencies
+        run: npm ci
+
+      # แอปไม่มีขั้น build บน CI (ตัว binary สร้างด้วย EAS) ด่านนี้จึงเป็น
+      # ที่เดียวที่จับ type error ได้ก่อนถึงมือผู้ใช้ — ห้ามข้าม
+      - name: Mobile typecheck
+        run: npm run typecheck
+
+      - name: Mobile lint
+        run: npm run lint
+
+      - name: Mobile tests
+        run: npm test -- --runInBand
+
+      # รายงานอย่างเดียว ไม่บล็อก — ต่างจาก backend/frontend โดยตั้งใจ
+      #
+      # ช่องโหว่ระดับ high ที่ค้างอยู่ทั้งหมดมาจาก metro/@expo/cli ซึ่งเป็น
+      # เครื่องมือ build ที่ Expo กำหนดเวอร์ชันมาให้ ไม่ได้ ship ไปกับ .ipa/.apk
+      # และแก้ไม่ได้โดยไม่ downgrade Expo ทั้งตัว การบล็อกที่นี่จะทำให้ทีม
+      # ชินกับการเห็น CI แดงจนเลิกอ่าน ซึ่งอันตรายกว่าตัวช่องโหว่เอง
+      #
+      # ให้ทบทวนรายการนี้ทุกครั้งที่อัป Expo เวอร์ชันใหญ่
+      - name: Mobile npm audit (รายงานอย่างเดียว)
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  e2e:
+    name: E2E Smoke (Playwright)
+    runs-on: ubuntu-latest
+    # รันหลัง build ผ่านแล้ว ไม่งั้นเสียเวลาเปิดฐานข้อมูลเพื่อไปล้มที่ compile
+    needs: [backend, frontend]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hr_admin
+          POSTGRES_PASSWORD: hr_password
+          # ชื่อฐานข้อมูลต้องมีคำว่า "uat" เพราะ uat_seed_full_system.sql
+          # มี guard กันไม่ให้รันใส่ฐานข้อมูลอื่นโดยไม่ตั้งใจ
+          POSTGRES_DB: hr_workforce_uat
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: development
+      TZ: Asia/Bangkok
+      PORT: 4000
+      DATABASE_URL: postgresql://hr_admin:hr_password@localhost:5433/hr_workforce_uat?schema=public
+
+      JWT_ACCESS_SECRET: ci_access_secret_abcdefghijklmnopqrstuvwxyz123456
+      JWT_REFRESH_SECRET: ci_refresh_secret_abcdefghijklmnopqrstuvwxyz123456789012345678
+      ACCESS_TOKEN_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+
+      FRONTEND_URL: http://localhost:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000/api
+
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
+      # e2e ต้องอ่านรหัส 2FA จาก response ได้ ไม่งั้นล็อกอินไม่ผ่าน
+      TWO_FACTOR_DEV_SHOW_CODE: "true"
+      TWO_FACTOR_REQUIRED_ROLE_CODES: SYSTEM_ADMIN
+      MONITORING_REDIS_CHECK_ENABLED: "false"
+
+      SEED_ADMIN_PASSWORD: Admin@123456
+      SEED_DEMO_PASSWORD: Admin@123456
+
+      UPLOAD_DIR: ./uploads
+      STORAGE_DIR: ./storage
+      EXPORT_STORAGE_DIR: ./storage/report-exports
+      TEMP_STORAGE_DIR: ./storage/tmp
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Prepare runtime folders
+        working-directory: backend
+        run: mkdir -p uploads storage storage/report-exports storage/tmp ../backups ../cleanup-logs
+
+      - name: Apply migrations
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Seed base data
+        working-directory: backend
+        run: npm run db:seed
+
+      # ชุดข้อมูลที่ e2e อ้างถึง (บัญชี *.alpha@tjc.local และงวดเงินเดือนตัวอย่าง)
+      # ต้องรันหลัง seed หลัก เพราะสคริปต์นี้ยืมรหัสผ่านจากผู้ใช้ที่ seed หลักสร้างไว้
+      - name: Seed UAT dataset
+        working-directory: backend
+        run: npx prisma db execute --file prisma/dev-seed/uat_seed_full_system.sql --schema prisma/schema.prisma
+
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+
+      - name: Start backend
+        working-directory: backend
+        run: |
+          node dist/main > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:4000/api/health > /dev/null; then
+              echo "backend พร้อมแล้ว"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "backend ไม่ขึ้นภายในเวลาที่กำหนด"
+          cat /tmp/backend.log
+          exit 1
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Start frontend
+        working-directory: frontend
+        run: |
+          # standalone ไม่รวมไฟล์ static/public มาให้ ต้องวางข้าง ๆ server.js เอง
+          # ไม่งั้นหน้าเว็บขึ้นแต่ไม่มี CSS และรูป ทำให้ smoke test ล้มแบบงง ๆ
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+          node .next/standalone/server.js > /tmp/frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000 > /dev/null; then
+              echo "frontend พร้อมแล้ว"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "frontend ไม่ขึ้นภายในเวลาที่กำหนด"
+          cat /tmp/frontend.log
+          exit 1
+        env:
+          PORT: 3000
+          HOSTNAME: 0.0.0.0
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # รันเฉพาะ smoke ที่ไม่ผูกกับค่าข้อมูลเฉพาะ
+      # ชุด full-system ตรวจตัวเลขจากชุดข้อมูล UAT ซึ่งเปราะเกินกว่าจะใช้กั้น PR
+      - name: Run smoke tests
+        working-directory: frontend
+        run: npx playwright test e2e/smoke-pages.spec.ts
+
+      - name: Upload report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
+
+      - name: Upload server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-logs
+          path: |
+            /tmp/backend.log
+            /tmp/frontend.log
+          retention-days: 7
+
+  employee-mobile:
+    name: Employee Mobile Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: employee-mobile
+
+    env:
+      # ค่าเหล่านี้ใช้แค่ให้ config ผ่าน validation ตอน typecheck/test
+      # แอปจริงอ่านค่าจาก EAS environment ตอน build
+      EXPO_PUBLIC_APP_ENV: development
+      EXPO_PUBLIC_API_BASE_URL: http://localhost:4000/api
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: employee-mobile/package-lock.json
+
+      - name: Install employee-mobile dependencies
+        run: npm ci
+
+      - name: Employee mobile typecheck
+        run: npm run typecheck
+
+      - name: Employee mobile lint
+        run: npm run lint
+
+      - name: Employee mobile tests
+        run: npm test -- --runInBand --passWithNoTests
+
+      - name: Employee mobile dependency compatibility
+        run: npx expo install --check
+
+      - name: Employee mobile npm audit
+        run: npm audit --audit-level=high
+
+  docker-images:
+    name: Docker Images (ที่ใช้ขึ้นเซิร์ฟเวอร์จริง)
+    runs-on: ubuntu-latest
+
+    # ด่านนี้มีไว้เพราะอิมเมจที่ขึ้นเซิร์ฟเวอร์จริงไม่ได้ใช้เส้นทางเดียวกับด่านอื่น
+    # ด่าน backend/frontend รัน npm ci กับ build บนเครื่อง runner โดยตรง
+    # จึงมี .env และตัวแปรแวดล้อมครบ — ปัญหาที่โผล่เฉพาะตอน docker build
+    # (postinstall โหลดของจากเน็ต, prisma.config.ts หา DATABASE_URL ไม่เจอ)
+    # จะไม่ถูกจับเลย จนกว่าจะถึงวันขึ้นระบบจริง
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          load: true
+          tags: hr-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ตรวจว่าของที่ต้องมีในอิมเมจอยู่ครบจริง ไม่ใช่แค่ build ผ่าน
+      - name: Verify backend image contents
+        run: |
+          docker run --rm --entrypoint sh hr-backend:ci -c '
+            set -e
+            test -f dist/main.js                 || { echo "ไม่มี dist/main.js"; exit 1; }
+            test -d src/generated/prisma         || { echo "ไม่มี src/generated (cleanup:audit จะพัง)"; exit 1; }
+            test -d prisma/migrations            || { echo "ไม่มี migrations"; exit 1; }
+            test -x /usr/bin/chromium            || { echo "ไม่มี chromium (ออก PDF ไม่ได้)"; exit 1; }
+            npx prisma --version > /dev/null     || { echo "ไม่มี prisma CLI (migrate deploy ไม่ได้)"; exit 1; }
+            echo "อิมเมจ backend ครบ"
+          '
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          load: true
+          tags: hr-frontend:ci
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://ci.invalid/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify frontend image contents
+        run: |
+          docker run --rm --entrypoint sh hr-frontend:ci -c '
+            test -f server.js || { echo "ไม่มี server.js (standalone ไม่ออก)"; exit 1; }
+            echo "อิมเมจ frontend ครบ"
+          '

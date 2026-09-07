@@ -1,0 +1,83 @@
+# =============================================================================
+# ตัวคั่นหน้าสำหรับเครื่องสแกนลายนิ้วมือ (ADMS / iclock ของ ZKTeco)
+# =============================================================================
+#
+# ทำไมต้องมีไฟล์นี้:
+# backend บังคับให้ทุกคำขอที่เข้า /iclock/* แนบ shared secret มาด้วย
+# (ดู backend/src/common/guards/device-push.guard.ts) แต่เครื่องสแกนส่วนใหญ่
+# ตั้งค่าได้แค่ "ที่อยู่เซิร์ฟเวอร์ + พอร์ต" ใส่ query string หรือ header เองไม่ได้
+# ตัวนี้จึงรับจากเครื่องแล้ว **เติม header x-device-token ให้** ก่อนส่งต่อ backend
+#
+# ผลพลอยได้: เครื่องไม่ต้องเห็น backend ตรง ๆ และเปิดได้เฉพาะ /iclock/*
+# เส้นทางอื่น (/api, /uploads) ปิดตายจากพอร์ตนี้
+#
+# ค่า ${ATTENDANCE_DEVICE_PUSH_TOKEN} ถูกแทนตอนคอนเทนเนอร์เริ่มทำงาน
+# (nginx official image แทนค่าให้เองจากไฟล์ใน /etc/nginx/templates/)
+# ถ้าไม่ได้รันด้วย docker ให้แก้ค่านั้นเป็นโทเคนจริงในไฟล์ก่อนใช้ — ดู README.md
+# =============================================================================
+
+server {
+    # พอร์ตที่ตั้งในเครื่องสแกน — ต้องตรงกับที่ map ไว้ใน docker-compose.prod.yml
+    listen 8080;
+    server_name _;
+
+    # เครื่องสแกนพูด HTTP ล้วน ต่อ TLS ไม่ได้ จึงห้ามเปิดพอร์ตนี้ออกอินเทอร์เน็ต
+    # ให้อยู่ในวงเดียวกับเครื่อง หรือลากผ่าน VPN/site-to-site เท่านั้น
+
+    # แยก log ของเครื่องสแกนออกมา เวลาไล่ปัญหาจะได้ไม่ปนกับ traffic ของหน้าเว็บ
+    access_log /var/log/nginx/attendance-device.access.log;
+    error_log  /var/log/nginx/attendance-device.error.log;
+
+    # ATTLOG ที่ค้างในเครื่องหลายวันก้อนเดียวอาจใหญ่ ให้สอดคล้องกับ limit 5mb
+    # ที่ backend ตั้งไว้ใน main.ts
+    client_max_body_size 6m;
+
+    # เครื่องรุ่นเก่าบางตัวยิง HTTP/1.0 และเปิด connection ค้างไว้
+    client_body_timeout 60s;
+    keepalive_timeout 75s;
+
+    # ทุกอย่างที่ไม่ใช่ /iclock/* ตัดทิ้งเงียบ ๆ ไม่ตอบอะไรกลับ
+    location / {
+        return 444;
+    }
+
+    location = /iclock {
+        return 444;
+    }
+
+    location /iclock/ {
+        # --- จำกัดเฉพาะ IP ของเครื่องสแกน (แนะนำให้เปิดใช้) -------------------
+        # เอา # ออกแล้วใส่ IP หรือ CIDR ของวงที่เครื่องสแกนอยู่
+        # ต้องมี deny all; ปิดท้ายเสมอ ไม่งั้น allow ไม่มีผล
+        #
+        # allow 192.168.1.0/24;
+        # allow 203.0.113.10;
+        # deny all;
+
+        # DNS ภายในของ docker — ต้องมีคู่กับ proxy_pass แบบตัวแปรข้างล่าง
+        resolver 127.0.0.11 valid=30s ipv6=off;
+
+        # ผ่านตัวแปร ไม่ใช่ชื่อ host ตรง ๆ เพราะ nginx จะ resolve ชื่อตอนโหลด config
+        # ถ้า backend ยังไม่ขึ้น ตัวคั่นหน้าจะบูตไม่ผ่านทั้งตัว ("host not found in
+        # upstream") แล้ววนรีสตาร์ตไปเรื่อย — แบบนี้ขึ้นก่อนได้ แล้วค่อยหา backend
+        # เจอทีหลัง ต้องต่อ $request_uri เองเพราะ proxy_pass แบบตัวแปรไม่เติม path ให้
+        set $backend_upstream http://backend:4000;
+        proxy_pass $backend_upstream$request_uri;
+
+        # หัวใจของไฟล์นี้ — เติมโทเคนแทนเครื่องที่ตั้ง header เองไม่ได้
+        proxy_set_header x-device-token "${ATTENDANCE_DEVICE_PUSH_TOKEN}";
+
+        # ไม่ตั้ง Host เอง ปล่อยให้เป็น $proxy_host เพราะเครื่องบางรุ่นไม่ส่ง Host
+        # มาด้วยซ้ำ ตั้งเป็น $host แล้วจะกลายเป็นค่าว่างส่งไป backend
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_http_version 1.1;
+        proxy_read_timeout 60s;
+        proxy_send_timeout 60s;
+
+        # ต้องส่งคำตอบกลับทันที เครื่องรอ "OK" เป็น text ดิบ
+        proxy_buffering off;
+    }
+}

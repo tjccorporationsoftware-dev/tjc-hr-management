@@ -1,0 +1,820 @@
+openapi: 3.1.0
+info:
+  title: HR Workforce — Mobile API
+  version: 1.0.0
+  description: |
+    Contract ของ Native App (Expo Employee App)
+
+    Endpoint ทุกตัวเป็น façade อยู่ภายใน backend เดิม ไม่ใช่ backend แยก (ADR-001)
+    ดูคู่ mapping ไป Service เดิมได้ที่ `docs/mobile/API_MAPPING_MATRIX.md`
+
+    **เวอร์ชัน:** ขึ้น `/api/mobile/v2` เมื่อมี breaking change เท่านั้น
+    การเพิ่ม field ใหม่ถือว่า backward-compatible และทำได้ใน v1
+
+servers:
+  - url: /api/mobile/v1
+
+tags:
+  - name: Auth
+    description: BE-MOB-001 — เข้าสู่ระบบ / ต่ออายุ / ออกจากระบบ
+  - name: Bootstrap
+    description: BE-MOB-003 — ข้อมูลตั้งต้นและหน้าวันนี้
+  - name: Attendance
+    description: BE-MOB-005 — บริบทการลงเวลาและการลงเวลา
+  - name: Devices
+    description: BE-MOB-004 — ทะเบียนเครื่องและ Push token
+  - name: Telemetry
+    description: MOB-005 — crash/error ที่แอปส่งกลับมาให้ backend เก็บ log
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: เข้าสู่ระบบจากแอป
+      description: |
+        **2FA บนช่องทางมือถือถูกปิดไว้เป็นค่าเริ่มต้น (BE-MOB-002)**
+
+        ระบบยังไม่มีช่องทางส่ง OTP ถ้าบังคับ ผู้ใช้ที่เข้าเงื่อนไขจะล็อกอินไม่ได้ถาวร
+        `requiresTwoFactor` จึงเป็น `false` เสมอจนกว่าจะตั้ง `MOBILE_TWO_FACTOR_ENABLED=true`
+
+        แอปต้องรองรับทั้งสองกรณีอยู่แล้ว เพราะ flag เปิดคืนได้โดยไม่ต้องออกเวอร์ชันใหม่
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, installation]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                installation: { $ref: '#/components/schemas/Installation' }
+      responses:
+        '201':
+          description: |
+            สำเร็จ — คืน token ชุดเต็ม
+            หรือคืน challenge ถ้าบัญชีนั้นต้องยืนยัน 2FA
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+              examples:
+                loggedIn:
+                  summary: เข้าสู่ระบบสำเร็จ
+                  value:
+                    success: true
+                    data:
+                      requiresTwoFactor: false
+                      accessToken: eyJhbGciOi...
+                      accessTokenExpiresAt: '2026-08-03T04:30:00.000Z'
+                      refreshToken: eyJhbGciOi...
+                      refreshTokenExpiresAt: '2026-09-02T04:00:00.000Z'
+                      tokenType: Bearer
+                      session:
+                        id: 9f1c...
+                        installationId: 6f0d...
+                      user:
+                        id: usr_1
+                        email: employee@example.com
+                        displayName: สมชาย ใจดี
+                    requestId: req_1
+                twoFactorRequired:
+                  summary: ต้องยืนยัน 2FA ต่อ
+                  value:
+                    success: true
+                    data:
+                      requiresTwoFactor: true
+                      twoFactorToken: eyJhbGciOi...
+                      expiresAt: '2026-08-03T04:05:00.000Z'
+                    requestId: req_2
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/2fa/verify:
+    post:
+      tags: [Auth]
+      summary: ยืนยันรหัส 2FA
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [twoFactorToken, code, installation]
+              properties:
+                twoFactorToken: { type: string }
+                code: { type: string, minLength: 6, maxLength: 6 }
+                installation: { $ref: '#/components/schemas/Installation' }
+      responses:
+        '201':
+          description: ยืนยันสำเร็จ คืน token ชุดเต็ม
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: ต่ออายุ session
+      description: |
+        Refresh token หมุนทุกครั้ง (rotation) — ตัวเดิมใช้ต่อไม่ได้ทันที
+        `installationId` ต้องตรงกับเครื่องที่สร้าง session ไว้ ไม่อย่างนั้นถูกปฏิเสธ
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken, installationId]
+              properties:
+                refreshToken: { type: string }
+                installationId: { type: string }
+      responses:
+        '201':
+          description: ต่ออายุสำเร็จ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401':
+          description: token หมดอายุ ถูกเพิกถอน หรือมาจากเครื่องอื่น
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: ออกจากระบบ
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+                installationId: { type: string }
+      responses:
+        '201':
+          description: ออกจากระบบแล้ว (idempotent — เรียกซ้ำได้)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+
+  /bootstrap:
+    get:
+      tags: [Bootstrap]
+      summary: ข้อมูลตั้งต้นทั้งหมดของแอปใน request เดียว
+      description: |
+        endpoint นี้ **ไม่บล็อกแอปเวอร์ชันเก่า** โดยตั้งใจ
+        เพราะแอปต้องอ่าน `compatibility` มาแสดงหน้าบังคับอัปเดตให้ได้ก่อน
+
+        ส่วนที่ไม่ critical (today / summary / notifications) มี timeout
+        ถ้าดึงไม่ทันจะเป็น `null` แทนที่จะทำให้ทั้ง request ล้ม
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Bootstrap' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: บัญชีนี้ยังไม่ได้ผูกกับข้อมูลพนักงาน
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /today:
+    get:
+      tags: [Bootstrap]
+      summary: รีเฟรชเฉพาะหน้าวันนี้
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Today' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /attendance/punch-context:
+    get:
+      tags: [Attendance]
+      summary: บริบทก่อนลงเวลา (กะ, นโยบายพิกัด, รอบที่ลงได้)
+      parameters:
+        - in: query
+          name: punchType
+          schema: { $ref: '#/components/schemas/PunchType' }
+          description: ไม่ส่ง = ให้ server เลือกรอบตามเวลาปัจจุบัน
+        - in: query
+          name: punchedAt
+          schema: { type: string, format: date-time }
+          description: ใช้ดูตัวอย่างล่วงหน้าเท่านั้น ไม่มีผลกับการบันทึกจริง
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/PunchContext' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /attendance/punch:
+    post:
+      tags: [Attendance]
+      summary: ลงเวลา
+      description: |
+        **ต้องส่ง `Idempotency-Key` เสมอ** ไม่อย่างนั้นได้ 400
+
+        เวลาที่บันทึกมาจาก server เท่านั้น — `client.capturedAt` ที่ส่งมา
+        ใช้เป็นหลักฐาน/คำนวณ clock drift ไม่ใช่เวลาที่ลงบันทึก
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PunchRequest' }
+      responses:
+        '201':
+          description: บันทึกสำเร็จ (หรือ replay ผลเดิมของ Idempotency-Key เดียวกัน)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/PunchResult' }
+        '400':
+          description: |
+            ไม่ส่ง Idempotency-Key, อยู่นอกช่วงรอบลงเวลา,
+            ลงรอบนี้ไปแล้ว หรืออยู่นอกรัศมีที่อนุญาต
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403':
+          description: ไม่มีสิทธิ์ / เครื่องถูกถอนสิทธิ์ / แอปเก่าเกินไป
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                deviceRevoked:
+                  value:
+                    success: false
+                    error:
+                      code: DEVICE_REVOKED
+                      message: เครื่องนี้ถูกถอนสิทธิ์แล้ว กรุณาเข้าสู่ระบบใหม่
+                    requestId: req_9
+                updateRequired:
+                  value:
+                    success: false
+                    error:
+                      code: APP_UPDATE_REQUIRED
+                      message: กรุณาอัปเดตแอปเป็นเวอร์ชันล่าสุดก่อนใช้งาน
+                      details: { currentBuild: 90, minimumBuild: 100 }
+                    requestId: req_10
+        '409':
+          description: Idempotency-Key ชนกัน
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+              examples:
+                conflict:
+                  summary: key เดิมแต่ข้อมูลต่าง
+                  value:
+                    success: false
+                    error:
+                      code: IDEMPOTENCY_CONFLICT
+                      message: Idempotency-Key นี้ถูกใช้กับข้อมูลชุดอื่นไปแล้ว
+                    requestId: req_11
+                inProgress:
+                  summary: คำขอเดิมยังทำไม่เสร็จ
+                  value:
+                    success: false
+                    error:
+                      code: IDEMPOTENCY_IN_PROGRESS
+                      message: คำขอก่อนหน้ากำลังดำเนินการอยู่ กรุณาตรวจสอบสถานะอีกครั้ง
+                    requestId: req_12
+
+  /devices/register:
+    post:
+      tags: [Devices]
+      summary: ลงทะเบียนเครื่องและ Expo push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [installation]
+              properties:
+                installation: { $ref: '#/components/schemas/Installation' }
+                expoPushToken: { type: string }
+                notificationPermission:
+                  type: string
+                  enum: [UNKNOWN, GRANTED, DENIED, UNDETERMINED]
+      responses:
+        '201':
+          description: ลงทะเบียนแล้ว
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Device' }
+
+  /devices/current:
+    patch:
+      tags: [Devices]
+      summary: อัปเดต push token / สิทธิ์แจ้งเตือน ของเครื่องปัจจุบัน
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                expoPushToken: { type: string }
+                notificationPermission:
+                  type: string
+                  enum: [UNKNOWN, GRANTED, DENIED, UNDETERMINED]
+                locale: { type: string }
+                timezone: { type: string }
+      responses:
+        '200':
+          description: อัปเดตแล้ว
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Device' }
+
+  /devices:
+    get:
+      tags: [Devices]
+      summary: รายการเครื่องของฉัน
+      responses:
+        '200':
+          description: สำเร็จ
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessEnvelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Device' }
+
+  /devices/revoke-others:
+    post:
+      tags: [Devices]
+      summary: ถอนสิทธิ์เครื่องอื่นทั้งหมด
+      responses:
+        '201':
+          description: ถอนสิทธิ์แล้ว
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+
+  /devices/{deviceId}:
+    delete:
+      tags: [Devices]
+      summary: ถอนสิทธิ์เครื่องหนึ่งเครื่อง
+      description: ถอนเครื่องตัวเองได้ ผลคือถูก logout จากเครื่องนั้นทันที
+      parameters:
+        - in: path
+          name: deviceId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: ถอนสิทธิ์แล้ว
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '404':
+          description: ไม่พบเครื่องนี้ในบัญชีของคุณ
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /telemetry:
+    post:
+      tags: [Telemetry]
+      summary: ส่ง crash/error ของแอปกลับมาที่ backend (MOB-005)
+      description: |
+        แอปไม่ได้ต่อ Sentry จึงส่งเหตุการณ์กลับมาที่นี่ให้ไปรวมกับ log ของ server
+
+        ต้องเข้าสู่ระบบแล้ว แต่ **ไม่บังคับ ESS_ACCESS** โดยตั้งใจ — บัญชีที่ยังไม่ผูก
+        พนักงานคือกลุ่มที่แอปพังให้เห็นพอดี
+
+        ห้ามส่ง token/รหัสผ่าน/OTP/ยอดเงิน/PII เข้ามา — server redact อีกชั้นให้
+        แต่นั่นเป็นตาข่ายกันพลาด ไม่ใช่ข้ออ้าง (บทที่ 21.1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items: { $ref: '#/components/schemas/TelemetryEvent' }
+      responses:
+        '202':
+          description: รับเข้าคิว log แล้ว
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SuccessEnvelope' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: { type: string, format: uuid }
+      description: สร้างหนึ่ง key ต่อหนึ่งเจตนาของผู้ใช้ และใช้ key เดิมซ้ำตอน retry
+
+  responses:
+    Unauthorized:
+      description: ยังไม่เข้าสู่ระบบ หรือ token ใช้ไม่ได้
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: ไม่มีสิทธิ์ใช้งานส่วนนี้
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooManyRequests:
+      description: เรียกบ่อยเกินกำหนด
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+    TelemetryEvent:
+      type: object
+      required: [level, message, occurredAt]
+      properties:
+        level:
+          type: string
+          enum: [debug, info, warning, error]
+          description: ฝั่งแอปส่งเฉพาะ warning และ error เพื่อไม่ให้ log ท่วม
+        message: { type: string, maxLength: 500 }
+        occurredAt: { type: string, format: date-time }
+        requestId:
+          type: string
+          maxLength: 64
+          nullable: true
+          description: ใช้เชื่อมกับ log ฝั่ง server (บทที่ 21.4)
+        route: { type: string, maxLength: 200 }
+        context:
+          type: object
+          additionalProperties: true
+          description: บริบทเพิ่มเติม — คีย์ที่เข้าข่ายข้อมูลอ่อนไหวจะถูก redact ทิ้ง
+
+    SuccessEnvelope:
+      type: object
+      required: [success, data]
+      properties:
+        success: { type: boolean, const: true }
+        data: {}
+        meta: {}
+        summary: {}
+        requestId: { type: string }
+
+    ErrorEnvelope:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, const: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: {}
+        requestId: { type: string }
+
+    Installation:
+      type: object
+      required: [installationId, platform]
+      properties:
+        installationId: { type: string, minLength: 8, maxLength: 128 }
+        platform: { type: string, enum: [android, ios] }
+        deviceName: { type: string }
+        deviceModel: { type: string }
+        osVersion: { type: string }
+        appVersion: { type: string }
+        appBuild: { type: integer, minimum: 0 }
+        locale: { type: string }
+        timezone: { type: string }
+
+    Compatibility:
+      type: object
+      properties:
+        minimumBuild: { type: integer }
+        latestBuild: { type: integer }
+        updateRequired: { type: boolean }
+        updateRecommended: { type: boolean }
+        storeUrl: { type: [string, 'null'] }
+
+    FeatureFlags:
+      type: object
+      description: resolve จากสิทธิ์และการตั้งค่าเดิมของพนักงาน ไม่มีตาราง flag แยก
+      properties:
+        announcements: { type: boolean }
+        attendance: { type: boolean }
+        attendancePhotoRequired: { type: boolean }
+        leave: { type: boolean }
+        offlinePunch: { type: boolean }
+        offsite: { type: boolean }
+        overtime: { type: boolean }
+        payslip: { type: boolean }
+        timeAdjust: { type: boolean }
+
+    HeroState:
+      type: string
+      enum:
+        - DAY_OFF
+        - NO_SHIFT
+        - NOT_CHECKED_IN
+        - MORNING_CHECKED_IN
+        - AFTERNOON_REQUIRED
+        - AFTERNOON_CHECKED_IN
+        - CHECK_OUT_AVAILABLE
+        - COMPLETED
+        - MISSING_LOG
+        - OFFSITE_ACTIVE
+        - PENDING_SYNC
+
+    PunchType:
+      type: string
+      enum: [MORNING_IN, AFTERNOON_IN, CHECK_OUT, OFFSITE_IN, OFFSITE_OUT, CUSTOM]
+
+    Today:
+      type: object
+      properties:
+        workDate: { type: string, format: date-time }
+        holiday: { type: object }
+        heroState: { $ref: '#/components/schemas/HeroState' }
+        canCheckIn: { type: boolean }
+        canCheckOut: { type: boolean }
+        timeline:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              logType: { type: string }
+              session: { type: [string, 'null'] }
+              status: { type: string }
+              isOffsite: { type: boolean }
+              logTime: { type: string, format: date-time }
+        latestLog: { type: [object, 'null'] }
+        quickActions:
+          type: array
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              label: { type: string }
+              enabled: { type: boolean }
+
+    Bootstrap:
+      type: object
+      properties:
+        server:
+          type: object
+          properties:
+            now: { type: string, format: date-time }
+            timezone: { type: string }
+        compatibility: { $ref: '#/components/schemas/Compatibility' }
+        user:
+          type: object
+          properties:
+            id: { type: string }
+            email: { type: string }
+            displayName: { type: string }
+            avatarUrl: { type: [string, 'null'] }
+        employee:
+          type: object
+          description: ส่งเฉพาะ field ที่หน้าแรกใช้จริง (data minimization บทที่ 20.6)
+          properties:
+            id: { type: string }
+            employeeCode: { type: [string, 'null'] }
+            title: { type: [string, 'null'] }
+            firstName: { type: [string, 'null'] }
+            lastName: { type: [string, 'null'] }
+            nickname: { type: [string, 'null'] }
+            displayName:
+              type: [string, 'null']
+              description: ชื่อที่พร้อมแสดงผล แอปไม่ต้องต่อคำเอง
+            positionName: { type: [string, 'null'] }
+            startDate: { type: [string, 'null'], format: date-time }
+        organization:
+          type: object
+          properties:
+            company: { type: [object, 'null'] }
+            branch: { type: [object, 'null'] }
+            department: { type: [object, 'null'] }
+            division: { type: [object, 'null'] }
+            employeeType: { type: [object, 'null'] }
+        permissions:
+          type: array
+          items: { type: string }
+        featureFlags: { $ref: '#/components/schemas/FeatureFlags' }
+        today:
+          oneOf:
+            - $ref: '#/components/schemas/Today'
+            - type: 'null'
+        summary:
+          type: object
+          properties:
+            leaveAvailable: { type: number }
+            pendingRequests: { type: integer }
+            unreadNotifications: { type: integer }
+            pendingActions: { type: integer }
+
+    PunchContext:
+      type: object
+      properties:
+        workDate: { type: string, format: date-time }
+        serverNow: { type: string, format: date-time }
+        allowed: { type: boolean }
+        reasonCode:
+          type: [string, 'null']
+          enum: [DAY_OFF, NO_ACTIVE_SHIFT, PUNCH_NOT_ALLOWED_NOW, null]
+        reason: { type: [string, 'null'] }
+        holiday: { type: object }
+        policy:
+          type: object
+          properties:
+            id: { type: string }
+            name: { type: string }
+            timezone: { type: string }
+        currentSession:
+          type: [object, 'null']
+          properties:
+            sessionCode: { type: string }
+            punchType: { type: string }
+            label: { type: string }
+            openTime: { type: string }
+            expectedTime: { type: string }
+            closeTime: { type: string }
+        sessionRules:
+          type: array
+          items:
+            type: object
+            properties:
+              sessionCode: { type: string }
+              label: { type: string }
+        locationPolicy:
+          type: object
+          properties:
+            required: { type: boolean }
+            location:
+              type: [object, 'null']
+              properties:
+                name: { type: string }
+                latitude: { type: number }
+                longitude: { type: number }
+                radiusMeters: { type: integer }
+        photoPolicy:
+          type: object
+          properties:
+            required: { type: boolean }
+            liveCaptureOnly: { type: boolean }
+        offlinePolicy:
+          type: object
+          properties:
+            allowed: { type: boolean }
+
+    PunchRequest:
+      type: object
+      required: [client]
+      properties:
+        punchType:
+          oneOf:
+            - $ref: '#/components/schemas/PunchType'
+          description: ไม่ส่ง = ให้ server เลือกรอบตามเวลาปัจจุบัน
+        client:
+          type: object
+          required: [capturedAt, installationId]
+          properties:
+            capturedAt:
+              type: string
+              format: date-time
+              description: เวลาที่เครื่องจับได้ — เป็นหลักฐาน ไม่ใช่เวลาที่บันทึก
+            queuedAt: { type: string, format: date-time }
+            installationId: { type: string }
+        location:
+          type: object
+          required: [latitude, longitude]
+          properties:
+            latitude: { type: number, minimum: -90, maximum: 90 }
+            longitude: { type: number, minimum: -180, maximum: 180 }
+            accuracyMeters: { type: number, minimum: 0 }
+            capturedAt: { type: string, format: date-time }
+            isMockedSignal:
+              type: boolean
+              description: รับไว้เป็น risk signal — ยังไม่บันทึกลงฐานข้อมูลในเฟสนี้
+        offsiteRequestId: { type: string }
+        note: { type: string, maxLength: 500 }
+
+    PunchResult:
+      type: object
+      properties:
+        status: { type: string, const: RECORDED }
+        attendanceLogId: { type: string }
+        recordedAt:
+          type: string
+          format: date-time
+          description: เวลาจาก server เท่านั้น
+        logType: { type: string }
+        session: { type: [string, 'null'] }
+        attendanceStatus: { type: string }
+        isOffsite: { type: boolean }
+        locationVerification:
+          type: object
+          properties:
+            status: { type: [string, 'null'] }
+            locationId: { type: [string, 'null'] }
+            distanceMeters: { type: [number, 'null'] }
+        clockDriftSeconds:
+          type: integer
+          description: server - client ใช้เตือนผู้ใช้เมื่อนาฬิกาเครื่องเพี้ยน
+
+    Device:
+      type: object
+      properties:
+        id: { type: string }
+        installationId: { type: string }
+        platform: { type: string }
+        deviceName: { type: [string, 'null'] }
+        deviceModel: { type: [string, 'null'] }
+        osVersion: { type: [string, 'null'] }
+        appVersion: { type: [string, 'null'] }
+        appBuild: { type: [integer, 'null'] }
+        pushStatus: { type: string }
+        notificationPermission: { type: string }
+        lastSeenAt: { type: [string, 'null'], format: date-time }
+        revokedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        isCurrentDevice: { type: boolean }
