@@ -219,12 +219,19 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: '#FFFFFF',
-        image: './assets/splash-hrtjc.png',
         /*
-         * ใช้ตราแนวนอนที่มีชื่อ HR-TJC GROUP อยู่ในตัว ชุดเดียวกับหน้าเข้าสู่
-         * ระบบ — จอเปิดแอปกับจอแรกที่เห็นต่อจากนั้นต้องเป็นตราเดียวกัน
+         * ใช้ตราสี่เหลี่ยมมนตัวเดียวกับไอคอนแอป
+         *
+         * เดิมใช้ตราแนวนอนที่มีคำว่า HR-TJC GROUP อยู่ใต้ตัวอักษร แต่พอย่อลง
+         * มาเหลือ 240 บนจอจริง คำนั้นเล็กจนอ่านไม่ออก และตราแนวนอนกินความ
+         * กว้างจนตัวตราเองก็เล็กตาม — ตราสี่เหลี่ยมใช้พื้นที่ได้เต็มทั้งสองด้าน
+         *
+         * ต้องเป็น `logo-app-source.png` เท่านั้น ห้ามใช้ `icon-hrtjc.png`
+         * ซึ่งเป็นไฟล์สำหรับ iOS ที่ถมมุมโปร่งไว้ทึบแล้ว — วางบนพื้นขาวจะเห็น
+         * เป็นสี่เหลี่ยมมุมฉากขอบเบลอแทนที่จะเป็นตรามุมมน
          */
-        imageWidth: 240,
+        image: './assets/logo-app-source.png',
+        imageWidth: 200,
       },
     ],
     [
@@ -353,7 +360,7 @@ const config: ExpoConfig = {
   }
 ).splash = {
   backgroundColor: '#FFFFFF',
-  image: './assets/splash-hrtjc.png',
+  image: './assets/logo-app-source.png',
   resizeMode: 'contain',
 };
 
