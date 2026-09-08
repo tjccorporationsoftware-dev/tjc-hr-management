@@ -12,19 +12,19 @@ const APP_ENV = process.env.EXPO_PUBLIC_APP_ENV ?? 'development';
 const IS_PRODUCTION = APP_ENV === 'production';
 
 /**
- * ชื่อแอปมีสองแบบ และตั้งใจให้ต่างกัน
+ * ชื่อแอป — ใช้ชื่อเต็มชื่อเดียวทุกที่
  *
- *   `APP_NAME`      ชื่อเต็ม — ใช้ในสโตร์ ในหน้าตั้งค่าของเครื่อง และในแอป
- *   `LAUNCHER_NAME` ชื่อใต้ไอคอนบนหน้าจอมือถือ — สั้นกว่า เพราะ launcher ตัด
- *                   ชื่อที่ยาวเกินราวสิบสองตัวอักษรทิ้งแล้วต่อจุดไข่ปลา
- *                   ชื่อเต็มมีคำว่า GROUP ต่อท้ายซึ่งเป็นคำที่หายไปได้โดยไม่
- *                   ทำให้จำแอปไม่ได้ ใต้ไอคอนจึงเหลือแค่ "HR-TJC"
+ * เดิมแยกเป็นสองชื่อ ชื่อใต้ไอคอนถูกตัดเหลือ "HR-TJC" เพราะกลัว launcher
+ * ตัดคำว่า GROUP ทิ้ง แต่ผลข้างเคียงคือชื่อนี้ไปโผล่บนแถบแจ้งเตือนด้วย
+ * (Android ใช้ `app_name` เป็นชื่อผู้ส่ง) พนักงานจึงเห็นแจ้งเตือนมาจาก
+ * "HR-TJC" ซึ่งไม่ใช่ชื่อที่บริษัทใช้เรียกตัวเอง
+ *
+ * ยอมให้ชื่อใต้ไอคอนถูกตัดท้ายบนเครื่องที่จอแคบ ดีกว่าใช้ชื่อผิดในที่ที่
+ * ผู้ใช้เห็นบ่อยกว่า
  */
 const APP_NAME = IS_PRODUCTION
   ? 'HR-TJC GROUP'
   : `HR-TJC GROUP (${APP_ENV})`;
-
-const LAUNCHER_NAME = IS_PRODUCTION ? 'HR-TJC' : `HR-TJC (${APP_ENV})`;
 
 /** แยก bundle id ต่อ environment เพื่อให้ลงเครื่องเดียวกันพร้อมกันได้ตอนทดสอบ */
 /** โปรเจกต์บน EAS — ใช้ทั้งตอนบิลด์และตอนส่งอัปเดต */
@@ -158,8 +158,8 @@ const config: ExpoConfig = {
        */
       ITSAppUsesNonExemptEncryption: false,
       CFBundleAllowMixedLocalizations: true,
-      /* ชื่อใต้ไอคอนบนหน้าจอ iOS — สั้นกว่าชื่อในสโตร์โดยตั้งใจ */
-      CFBundleDisplayName: LAUNCHER_NAME,
+      /* ชื่อใต้ไอคอนบนหน้าจอ iOS — ชื่อเดียวกับในสโตร์ */
+      CFBundleDisplayName: APP_NAME,
     },
   },
 
@@ -197,8 +197,14 @@ const config: ExpoConfig = {
   },
 
   plugins: [
-    /* ชื่อใต้ไอคอนฝั่ง Android — Expo ไม่มีช่องให้ตั้งแยกจาก `name` */
-    ['./plugins/with-launcher-label', { label: LAUNCHER_NAME }],
+    /*
+     * ตรึงชื่อใต้ไอคอน/ชื่อผู้ส่งแจ้งเตือนฝั่ง Android ไว้ให้ชัด
+     *
+     * ตอนนี้ค่าเท่ากับ `name` อยู่แล้ว ปลั๊กอินจึงไม่ได้เปลี่ยนอะไร — เก็บไว้
+     * เพราะเป็นช่องเดียวที่ตั้งชื่อสองอันแยกกันได้ ถ้าวันหนึ่งชื่อใต้ไอคอน
+     * ต้องสั้นกว่าชื่อในสโตร์อีก จะได้แก้ที่เดียว
+     */
+    ['./plugins/with-launcher-label', { label: APP_NAME }],
     /* ถอดคำอธิบายสิทธิ์ของ dev client ออกจากบิลด์ที่จะขึ้นสโตร์ */
     ...(IS_PRODUCTION ? ['./plugins/with-store-permission-cleanup'] : []),
     '@react-native-community/datetimepicker',

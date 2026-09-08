@@ -118,7 +118,7 @@ function MockNotification({
           maxScale={1.05}
           style={{ color: '#5b6474', fontSize: 11, lineHeight: 15 }}
         >
-          HR-TJC · ตอนนี้
+          HR-TJC GROUP · ตอนนี้
         </Text>
       </View>
 
