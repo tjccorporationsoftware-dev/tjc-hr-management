@@ -233,7 +233,20 @@ const config: ExpoConfig = {
          */
         locationAlwaysAndWhenInUsePermission: false,
         locationAlwaysPermission: false,
-        motionUsagePermission: false,
+        /*
+         * ต้องมีคำอธิบาย แม้แอปจะไม่ได้เรียกใช้เซ็นเซอร์การเคลื่อนไหวเอง
+         *
+         * เคยตั้งเป็น `false` เพื่อตัดสิทธิ์ที่ไม่ได้ใช้ออก ผลคือ Apple ปฏิเสธ
+         * ไฟล์ตอนประมวลผลด้วย ITMS-90683 (บิลด์ 4 เมื่อ 7 ก.ย. 2569) เพราะ
+         * โค้ดของ expo-location อ้างถึง API ของ CoreMotion อยู่ Apple ตรวจจาก
+         * โค้ดที่อยู่ในไฟล์ ไม่ได้ตรวจว่าเราเรียกใช้จริงหรือเปล่า — ตามที่อีเมล
+         * เขียนว่า "While your app might not use these APIs, a purpose string
+         * is still required"
+         *
+         * ข้อความนี้จึงต้องเป็นข้อความจริง ห้ามกลับไปใส่ false อีก
+         */
+        motionUsagePermission:
+          'ใช้เซ็นเซอร์การเคลื่อนไหวของเครื่องช่วยให้การระบุตำแหน่งตอนลงเวลาแม่นยำขึ้น',
         locationWhenInUsePermission:
           'ใช้ตำแหน่งเพื่อยืนยันว่าคุณอยู่ในพื้นที่ที่บริษัทอนุญาตขณะลงเวลาเท่านั้น',
       },
