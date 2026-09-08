@@ -13,5 +13,13 @@ export const storageKeys = {
   pinSalt: 'hr_employee_mobile.pin_salt',
   /** PIN ผูกกับผู้ใช้คนเดียว เครื่องที่เปลี่ยนคนใช้ต้องตั้งใหม่เสมอ */
   pinUserId: 'hr_employee_mobile.pin_user_id',
+  /**
+   * เคยเด้งขอสิทธิ์แจ้งเตือนบนเครื่องนี้ไปแล้วหรือยัง
+   *
+   * ผูกกับ "เครื่อง" ไม่ใช่ผู้ใช้ เพราะสิทธิ์แจ้งเตือนเป็นของระบบปฏิบัติการ
+   * ซึ่งถามได้ครั้งเดียวจริง ๆ — Android ตั้งแต่ 13 ปฏิเสธคำขอครั้งที่สอง
+   * ทันทีโดยไม่แสดงอะไรให้ผู้ใช้เห็น ถามซ้ำจึงไม่ได้อะไรนอกจากปิดทางตัวเอง
+   */
+  pushPermissionAsked: 'hr_employee_mobile.push_permission_asked',
   refreshToken: 'hr_employee_mobile.refresh_token',
 } as const;

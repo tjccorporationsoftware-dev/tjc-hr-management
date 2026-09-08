@@ -29,8 +29,20 @@ export default function AppLayout() {
 
   /* ต้องเรียกก่อน early return ทุกอัน — hook ห้ามเรียกแบบมีเงื่อนไข */
   usePushNavigation(bootstrap.data?.featureFlags);
-  /* ยิง token ได้ต่อเมื่อมี session แล้ว ไม่งั้น PATCH ไปโดน 401 เปล่า ๆ */
-  usePushRegistration(status === 'authenticated');
+  /*
+   * รอให้ผู้ใช้เข้ามาอยู่ในแอปจริง ๆ ก่อนค่อยขอสิทธิ์แจ้งเตือนกับยิง token
+   *
+   * ไม่ใช่แค่ "มี session แล้ว" — ด่านตั้ง PIN ปลดล็อก และเปลี่ยนรหัสชั่วคราว
+   * อยู่ถัดจากนี้ทั้งหมด การเด้งกล่องขอสิทธิ์ทับจอพวกนั้นคือการขัดจังหวะคน
+   * ที่กำลังพิมพ์รหัสอยู่ และผู้ใช้ยังไม่ทันเห็นว่าแอปนี้ทำอะไรได้บ้าง
+   */
+  usePushRegistration(
+    status === 'authenticated' &&
+      hasPin === true &&
+      !locked &&
+      !mustChangePassword &&
+      bootstrap.isSuccess,
+  );
 
   if (status === 'restoring') {
     return <AppLoading message="กำลังเตรียมพื้นที่ทำงาน..." />;

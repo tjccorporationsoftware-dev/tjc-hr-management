@@ -5,6 +5,8 @@ import { Platform } from 'react-native';
 import { apiClient } from '@/lib/api/api-client';
 import { ApiError } from '@/lib/api/api-error';
 import { captureEvent } from '@/lib/monitoring/monitoring';
+import { getSecureValue, setSecureValue } from '@/lib/storage/secure-storage';
+import { storageKeys } from '@/lib/storage/storage-keys';
 
 import { isPushSupported, loadNotifications } from './push-runtime';
 
@@ -188,6 +190,56 @@ export async function syncPushRegistration(): Promise<void> {
       context: { error, scope: 'notifications.push' },
       level: 'warning',
       message: 'ซิงก์ push token ไม่สำเร็จ',
+    });
+  }
+}
+
+/**
+ * เด้งขอสิทธิ์แจ้งเตือนครั้งแรกที่ผู้ใช้เข้าถึงในแอปได้
+ *
+ * เดิมไม่มีใครขอเลย มีแต่ปุ่มในจอตั้งค่าที่ต้องเดินไปกดเอง — พนักงานที่ลงแอป
+ * มาแล้วใช้งานปกติจึงไม่มีวันได้รับแจ้งเตือน เพราะ Android ตั้งแต่ 13
+ * ไม่ให้สิทธิ์นี้มาเองตอนติดตั้ง ต้องมีคนขอเท่านั้น
+ *
+ * ที่นี่ยังไม่ขัดกติกาบทที่ 15.4 (ห้ามขอทันทีที่เปิดแอปครั้งแรก) เพราะกว่าจะ
+ * ถึงจุดนี้ผู้ใช้ล็อกอินด้วยบัญชีพนักงาน ตั้ง PIN และเห็นข้อมูลตัวเองแล้ว —
+ * รู้แล้วว่าแอปนี้คืออะไรและแจ้งเตือนจะเป็นเรื่องอะไร
+ *
+ * **ขอได้ครั้งเดียวตลอดอายุการติดตั้ง** จึงจดไว้ก่อนขอ ไม่ใช่หลังขอ — ถ้าจด
+ * ทีหลังแล้วแอปถูกปิดกลางคัน รอบหน้าจะขอซ้ำ ซึ่ง Android ปฏิเสธเงียบ ๆ ให้เลย
+ * โดยผู้ใช้ไม่เห็นอะไร แล้วเราจะเผาโอกาสเดียวที่มีทิ้งไปโดยไม่รู้ตัว
+ */
+export async function requestPushPermissionOnce(): Promise<void> {
+  try {
+    if (!isPushSupported || !Device.isDevice) {
+      return;
+    }
+
+    const notifications = await loadNotifications();
+
+    if (!notifications) {
+      return;
+    }
+
+    const { status } = await notifications.getPermissionsAsync();
+
+    /* ตอบไปแล้วไม่ว่าทางไหน — ที่เหลือเป็นเรื่องของตั้งค่าเครื่อง */
+    if (status !== 'undetermined') {
+      return;
+    }
+
+    if (await getSecureValue(storageKeys.pushPermissionAsked)) {
+      return;
+    }
+
+    await setSecureValue(storageKeys.pushPermissionAsked, '1');
+
+    await enablePush();
+  } catch (error) {
+    captureEvent({
+      context: { error, scope: 'notifications.push' },
+      level: 'warning',
+      message: 'ขอสิทธิ์แจ้งเตือนไม่สำเร็จ',
     });
   }
 }
