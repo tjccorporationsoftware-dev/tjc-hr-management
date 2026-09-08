@@ -9,6 +9,7 @@ import { logout } from '@/features/auth/auth.service';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { useBootstrap } from '@/features/bootstrap/use-bootstrap';
 import { usePushNavigation } from '@/features/notifications/use-push-navigation';
+import { usePushRegistration } from '@/features/notifications/use-push-registration';
 import { ApiError } from '@/lib/api/api-error';
 
 /**
@@ -28,6 +29,8 @@ export default function AppLayout() {
 
   /* ต้องเรียกก่อน early return ทุกอัน — hook ห้ามเรียกแบบมีเงื่อนไข */
   usePushNavigation(bootstrap.data?.featureFlags);
+  /* ยิง token ได้ต่อเมื่อมี session แล้ว ไม่งั้น PATCH ไปโดน 401 เปล่า ๆ */
+  usePushRegistration(status === 'authenticated');
 
   if (status === 'restoring') {
     return <AppLoading message="กำลังเตรียมพื้นที่ทำงาน..." />;

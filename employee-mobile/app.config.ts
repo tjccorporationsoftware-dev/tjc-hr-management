@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+
 import type { ExpoConfig } from 'expo/config';
 
 /**
@@ -32,13 +34,43 @@ const BUNDLE_ID = IS_PRODUCTION
   ? 'com.tjc.employeemobile'
   : `com.tjc.employeemobile.${APP_ENV}`;
 
+/**
+ * กุญแจ FCM ของฝั่ง Android
+ * -------------------------
+ * แจ้งเตือนที่ส่งจากเซิร์ฟเวอร์บน Android วิ่งผ่าน FCM ทางเดียว (Play Services
+ * เป็นตัวเดียวที่ค้างการเชื่อมต่อไว้ให้ทั้งเครื่อง แอปเปิด socket ค้างเองไม่ได้)
+ * `expo-notifications` จึงลาก `firebase-messaging` เข้ามา และมันต้องอ่านไฟล์นี้
+ * ตอนเปิดแอปเพื่อรู้ว่าจะไปคุยกับโปรเจกต์ไหน
+ *
+ * **ขาดไฟล์นี้แล้ว push ตายเงียบทั้งระบบ** — Firebase init ไม่ขึ้น
+ * `getExpoPushTokenAsync()` โยน error แอปจับไว้แล้วถือว่า "เครื่องนี้ไม่รองรับ"
+ * เลยไม่เคยมี token ขึ้นเซิร์ฟเวอร์ ฝั่ง backend ก็หาเครื่องที่จะส่งไม่เจอและ
+ * ออกจากฟังก์ชันไปเฉย ๆ ไม่มี error ให้เห็นสักฝั่ง (เจอครั้งแรก 8 ก.ย. 2569)
+ *
+ * ไฟล์นี้ **ไม่ใช่ความลับ** — มันถูกฝังอยู่ใน APK ที่แจกอยู่แล้ว ใครถอดไฟล์ก็อ่านได้
+ * (คนละอย่างกับ service account key ที่ใช้ *ส่ง* ซึ่งอยู่บน EAS ห้ามเข้า repo)
+ *
+ * ยังไม่มีไฟล์ก็ยังบิลด์ผ่าน เพียงแต่แจ้งเตือนจะไม่เด้ง — ตั้งใจให้เป็นแบบนี้
+ * เพื่อไม่ให้คนที่เพิ่ง clone มารันแอปไม่ได้เลย แต่ต้องมีเสียงเตือนดังพอ
+ */
+const GOOGLE_SERVICES_FILE =
+  process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
+
+const HAS_GOOGLE_SERVICES = existsSync(GOOGLE_SERVICES_FILE);
+
+if (!HAS_GOOGLE_SERVICES) {
+  console.warn(
+    `[app.config] ไม่พบ ${GOOGLE_SERVICES_FILE} — บิลด์ Android นี้จะรับแจ้งเตือนจากเซิร์ฟเวอร์ไม่ได้`,
+  );
+}
+
 const config: ExpoConfig = {
   name: APP_NAME,
   slug: 'employee-mobile',
   /* โปรเจกต์อยู่ใต้องค์กร tjc.corporation ไม่ใช่บัญชีส่วนตัวของคนที่บิลด์
    * ขาดบรรทัดนี้ EAS จะสร้างโปรเจกต์ใหม่ใต้บัญชีคนที่รัน eas init แทน */
   owner: 'tjc.corporation',
-  version: '1.0.0',
+  version: '1.0.1',
   scheme: 'employee-mobile',
   orientation: 'portrait',
   /*
@@ -86,7 +118,7 @@ const config: ExpoConfig = {
    * อัตโนมัติเมื่อมีอะไรเปลี่ยน และอัปเดตจะไม่ข้ามไปหาบิลด์ที่ไม่เข้ากัน
    */
   /*
-   * ผูกอัปเดตกับเลข `version` ข้างบน (ตอนนี้ '1.0.0')
+   * ผูกอัปเดตกับเลข `version` ข้างบน (ตอนนี้ '1.0.1')
    *
    * เดิมใช้ policy 'fingerprint' ซึ่งคำนวณจากไฟล์ native จริง ฟังดูปลอดภัย
    * กว่า แต่ใช้ไม่ได้กับทีมนี้ — ลายนิ้วมือคำนวณบน Windows กับบนเครื่องบิลด์
@@ -149,6 +181,9 @@ const config: ExpoConfig = {
       foregroundImage: './assets/adaptive-icon-hrtjc.png',
     },
     package: BUNDLE_ID,
+    ...(HAS_GOOGLE_SERVICES
+      ? { googleServicesFile: GOOGLE_SERVICES_FILE }
+      : {}),
     /*
      * `SYSTEM_ALERT_WINDOW` (วาดทับแอปอื่น) มาจาก `expo-dev-client` ที่ใช้
      * วาดเมนูนักพัฒนาลอยเหนือแอป — ผู้ใช้จริงไม่ควรเห็นสิทธิ์นี้ตอนติดตั้ง

@@ -91,6 +91,15 @@ export class MobilePushService implements OnModuleInit {
     });
 
     if (devices.length === 0) {
+      /*
+       * ไม่มีเครื่องให้ส่ง = ปกติได้ (ยังไม่มีใครลงแอป) แต่ก็เป็นอาการของ
+       * ฝั่งแอปลงทะเบียน token ไม่สำเร็จด้วย ซึ่งเคยเงียบอยู่นานเพราะจุดนี้
+       * ออกไปเฉย ๆ โดยไม่ทิ้งร่องรอยไว้เลย
+       */
+      this.logger.debug(
+        `ไม่มีเครื่องที่รับ push ได้สำหรับ ${payload.type} (ผู้รับ ${userIds.length} คน)`,
+      );
+
       return;
     }
 

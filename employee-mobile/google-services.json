@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802580980893",
+    "project_id": "hr-tjc",
+    "storage_bucket": "hr-tjc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802580980893:android:5f56b46cb1002db7a8e074",
+        "android_client_info": {
+          "package_name": "com.tjc.employeemobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuF7QwhL7hsGVykGR49AcNCMQUaUN3DuE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

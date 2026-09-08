@@ -24,6 +24,7 @@ import {
 } from '@/design/aurora';
 import {
   enablePush,
+  getPushFailureReason,
   getPushPermission,
   type PushPermission,
 } from '@/features/notifications/push';
@@ -150,9 +151,13 @@ export default function NotificationSettingsScreen() {
     setEnabling(false);
 
     if (result === 'GRANTED') {
-      toast.success('เปิดการแจ้งเตือนแล้ว');
+      toast.success('ลงทะเบียนเครื่องนี้เรียบร้อย');
     } else if (result === 'DENIED') {
       toast.warn('เครื่องปฏิเสธการแจ้งเตือน ต้องเปิดจากตั้งค่าเครื่อง');
+    } else {
+      toast.error(
+        getPushFailureReason() ?? 'เครื่องนี้ใช้การแจ้งเตือนจากเซิร์ฟเวอร์ไม่ได้',
+      );
     }
   }
 
@@ -173,21 +178,33 @@ export default function NotificationSettingsScreen() {
   const granted = permission === 'GRANTED';
   const items = preferences.data?.items ?? [];
 
+  /*
+   * `UNSUPPORTED` มาได้สองทางที่แก้คนละแบบ — Expo Go/emulator ที่ทำอะไรไม่ได้จริง
+   * กับความผิดพลาดตอนขอ token (เช่น FCM ยังไม่ได้ตั้งค่า) ซึ่งเป็นของที่เราต้องแก้
+   * ข้อความเดียวคลุมทั้งสองทางทำให้ push ตายเงียบอยู่นานโดยไม่มีใครเห็นสาเหตุ
+   */
+  const failureReason =
+    permission === 'UNSUPPORTED' ? getPushFailureReason() : null;
+
   const permissionCopy =
     permission === 'GRANTED'
-      ? 'เครื่องนี้อนุญาตให้แอปแจ้งเตือนแล้ว'
+      ? 'เครื่องนี้อนุญาตให้แอปแจ้งเตือนแล้ว แตะเพื่อลงทะเบียนเครื่องนี้ใหม่'
       : permission === 'DENIED'
         ? 'ถูกปิดไว้ที่ตั้งค่าเครื่อง แตะเพื่อไปเปิด'
         : permission === 'UNSUPPORTED'
-          ? 'ใช้งานได้เมื่อเปิดผ่านแอปที่ติดตั้งจริง ไม่ใช่ Expo Go'
+          ? (failureReason ??
+            'ใช้งานได้เมื่อเปิดผ่านแอปที่ติดตั้งจริง ไม่ใช่ Expo Go')
           : 'ยังไม่ได้ขออนุญาตบนเครื่องนี้ แตะเพื่อเปิด';
 
+  /*
+   * ตอน GRANTED ต้องกดได้ด้วย ไม่ใช่แค่โชว์สถานะ — token ผูกกับการติดตั้ง
+   * ลงแอปใหม่ทีได้ตัวใหม่ที ถ้าไม่มีทางยิงซ้ำ คนที่เครื่องอนุญาตอยู่แล้วจะไม่มี
+   * token บนเซิร์ฟเวอร์เลยและไม่ได้รับอะไรทั้งที่ทุกอย่างขึ้นว่าเปิดอยู่
+   */
   const permissionAction =
     permission === 'DENIED'
       ? () => void Linking.openSettings()
-      : permission === 'UNDETERMINED'
-        ? () => void handleEnablePush()
-        : undefined;
+      : () => void handleEnablePush();
 
   return (
     <View style={{ backgroundColor: AURORA.baseDeep, flex: 1 }}>
@@ -283,9 +300,9 @@ export default function NotificationSettingsScreen() {
                 <ActivityIndicator color={AURORA.accent} size="small" />
               ) : granted ? (
                 <Icon color={AURORA.accent} name="check-circle" size={19} />
-              ) : permissionAction ? (
+              ) : (
                 <Icon color={AURORA.textFaint} name="chevron-right" size={18} />
-              ) : null}
+              )}
             </PressableScale>
           </Reveal>
 
