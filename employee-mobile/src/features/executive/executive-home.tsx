@@ -737,6 +737,18 @@ function TrendColumns({ points }: { points: TrendPoint[] }) {
   const dense = points.length > 8;
   const gap = dense ? 3 : 8;
 
+  /*
+   * แท่งแคบกว่าช่องของตัวเอง ไม่ใช่กินเต็มช่อง
+   *
+   * ถ้าให้แท่งกว้างเท่าช่อง สิบสองเดือนบนจอมือถือจะได้แท่งกว้างราวยี่สิบห้า
+   * พิกเซลเรียงชิดกันโดยเหลือช่องไฟแค่สามพิกเซล อ่านเป็นแถบทึบแถบเดียวมากกว่า
+   * กราฟแท่ง และแท่งที่อ้วนกว่าความสูงของตัวเองทำให้เทียบความสูงกันยาก
+   *
+   * ช่องยังกว้างเท่ากันทุกช่อง (`flex: 1`) แท่งแค่วางกลางช่อง — ป้ายชื่อเดือน
+   * แถวล่างจึงยังตรงกับแท่งพอดีโดยไม่ต้องคำนวณอะไรเพิ่ม
+   */
+  const barWidth = dense ? 12 : 20;
+
   return (
     <View style={{ gap: 6 }}>
       <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap, height: 58 }}>
@@ -745,16 +757,18 @@ function TrendColumns({ points }: { points: TrendPoint[] }) {
           const ratio = peak > 0 ? point.value / peak : 0;
 
           return (
-            <View
-              key={point.label}
-              style={{
-                backgroundColor: point.emphasis ? AURORA.accent : TRACK,
-                borderRadius: 4,
-                flex: 1,
-                height: Math.max(ratio * 58, 3),
-                opacity: point.pending ? 0.5 : 1,
-              }}
-            />
+            <View key={point.label} style={{ alignItems: 'center', flex: 1 }}>
+              <View
+                style={{
+                  backgroundColor: point.emphasis ? AURORA.accent : TRACK,
+                  borderRadius: 3,
+                  height: Math.max(ratio * 58, 3),
+                  maxWidth: barWidth,
+                  opacity: point.pending ? 0.5 : 1,
+                  width: '62%',
+                }}
+              />
+            </View>
           );
         })}
       </View>
