@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
@@ -47,11 +48,11 @@ import { thaiDate, thaiTime } from '@/lib/date/thai-date';
  * วัน (วันนี้ / เมื่อวาน / วันที่) จึงเป็นโครงหลักของจอ ไม่ใช่ของประดับ
  * และทำให้ทิ้ง "15 ชั่วโมงที่แล้ว" ที่ต้องคำนวณในหัวออกได้ เหลือแค่เวลานาฬิกา
  *
- * ## รูปคนเป็นตัวแยกชนิดของรายการ
+ * ## ช่องรูปบอกว่าใครเป็นคนแจ้ง
  *
- * รายการที่คนทำ (อนุมัติ/ตีกลับ) ขึ้นรูปคนนั้นพร้อมจุดสถานะซ้อนมุม ส่วนรายการ
- * ที่ระบบสร้างเอง (มาสาย เวลาไม่ครบ) เป็นวงไอคอนสีสถานะล้วน — กวาดตาแล้ว
- * แยกออกทันทีว่าอันไหนมีคนอยู่เบื้องหลังโดยไม่ต้องอ่านข้อความ
+ * รายการที่คนทำ (อนุมัติ/ตีกลับ) ขึ้นรูปคนนั้น ส่วนรายการที่ระบบสร้างเอง
+ * (มาสาย เวลาไม่ครบ) ขึ้นตราแอป — กวาดตาแล้วแยกออกทันทีว่าอันไหนมีคนอยู่
+ * เบื้องหลังโดยไม่ต้องอ่านข้อความ ทั้งสองแบบมีจุดสถานะซ้อนมุมชุดเดียวกัน
  *
  * ตัวกรองอยู่ใน `<Sheet>` ทั้งหมดตามกติกาของแอป — เดิมเป็นชิปสองแถวเต็มจอ
  * ซึ่งกินพื้นที่ครึ่งบนไปกับของที่ผู้ใช้แตะนาน ๆ ครั้ง
@@ -200,17 +201,37 @@ function NotificationRow({
           </View>
         </View>
       ) : (
-        <View
-          style={{
-            alignItems: 'center',
-            backgroundColor: `${color}1a`,
-            borderRadius: 15,
-            height: ROW_AVATAR_SIZE,
-            justifyContent: 'center',
-            width: ROW_AVATAR_SIZE,
-          }}
-        >
-          <Icon color={color} name={icon} size={19} />
+        /*
+         * รายการที่ระบบสร้างเองใช้ตราแอป ไม่ใช่วงไอคอนสีสถานะ
+         *
+         * ผู้ใช้อ่านช่องรูปว่า "ใครส่งมา" ก่อนอ่านข้อความเสมอ วงไอคอนเปล่า ๆ
+         * ตอบคำถามนั้นไม่ได้ ตราแอปตอบได้ว่า "ระบบเป็นคนแจ้ง" ทันที
+         * ส่วนสถานะยังอยู่ครบที่จุดมุมขวาล่าง ชุดเดียวกับแถวที่มีรูปคน
+         */
+        <View style={{ height: ROW_AVATAR_SIZE, width: ROW_AVATAR_SIZE }}>
+          <Image
+            contentFit="contain"
+            source={require('../../../assets/logo-app-source.png')}
+            style={{
+              borderRadius: 13,
+              height: ROW_AVATAR_SIZE,
+              width: ROW_AVATAR_SIZE,
+            }}
+          />
+          <View
+            style={{
+              alignItems: 'center',
+              backgroundColor: '#ffffff',
+              borderRadius: 999,
+              bottom: -2,
+              justifyContent: 'center',
+              padding: 1,
+              position: 'absolute',
+              right: -2,
+            }}
+          >
+            <Icon color={color} name={icon} size={13} />
+          </View>
         </View>
       )}
 

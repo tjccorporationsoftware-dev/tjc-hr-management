@@ -4202,7 +4202,19 @@ export class NotificationsService {
     actorMap: Map<string, NotificationActor> = new Map(),
   ): NotificationItem {
     const employeeId = this.extractNotificationActorEmployeeId(record);
+    const actor = employeeId ? (actorMap.get(employeeId) ?? null) : null;
 
+    /*
+     * ผู้รับเองไม่นับเป็น "ผู้ทำ"
+     *
+     * แจ้งเตือนที่ระบบสร้างเอง (มาสาย เวลาไม่ครบ) ไม่มี actor จริง แต่ metadata
+     * มี `employeeId` ของเจ้าตัวติดมาด้วยเพื่อใช้อ้างอิงรายการ ตัวหา actor จึง
+     * ตกมาใช้ค่านั้นแล้วคืนเป็น "ผู้ทำ" — ผลคือผู้ใช้เห็นรูปกับชื่อตัวเอง
+     * มาบอกว่าตัวเองมาสาย ซึ่งอ่านแล้วสับสนว่าใครเป็นคนแจ้ง
+     *
+     * ไม่แก้ที่ตัวหา เพราะการตกมาใช้ `employeeId` ถูกต้องสำหรับแจ้งเตือนของ
+     * หัวหน้าที่พูดถึงลูกทีม (เช่น "ลูกทีมเริ่มลาพรุ่งนี้") ซึ่งต้องเห็นหน้าคนนั้น
+     */
     return {
       id: record.id,
       key: record.sourceKey,
@@ -4217,7 +4229,7 @@ export class NotificationsService {
       readAt: record.readAt?.toISOString() ?? null,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-      actor: employeeId ? (actorMap.get(employeeId) ?? null) : null,
+      actor: actor && actor.userId === record.userId ? null : actor,
     };
   }
 
