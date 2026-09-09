@@ -723,7 +723,14 @@ interface TrendPoint {
   value: number;
 }
 
-function TrendColumns({ points }: { points: TrendPoint[] }) {
+function TrendColumns({
+  onSelect,
+  points,
+}: {
+  /** ไม่ส่งมา = กราฟดูอย่างเดียว ไม่มีอะไรให้กด */
+  onSelect?: (index: number) => void;
+  points: TrendPoint[];
+}) {
   const peak = points.reduce((max, point) => Math.max(max, point.value), 0);
 
   /*
@@ -791,6 +798,42 @@ function TrendColumns({ points }: { points: TrendPoint[] }) {
           </Text>
         ))}
       </View>
+
+      {onSelect ? (
+        /*
+         * พื้นที่กดวางทับทั้งกราฟ ไม่ได้ผูกไว้กับตัวแท่ง
+         *
+         * แท่งกว้างสิบสองพิกเซลและสูงไม่เท่ากัน กดโดนยากมากโดยเฉพาะเดือนที่
+         * ยอดต่ำซึ่งเหลือความสูงแค่ไม่กี่พิกเซล ช่องกดจึงเป็นแถบเต็มความสูง
+         * ของช่องตัวเอง ตั้งแต่หัวกราฟลงมาถึงป้ายชื่อเดือน — กดตรงไหนของ
+         * คอลัมน์ก็ติด และไม่กินพื้นที่ของคอลัมน์ข้างเคียง
+         *
+         * ซ้อนแบบ absolute เพื่อไม่ให้ไปกระทบการวางแท่งกับป้ายที่แยกเป็นสองแถว
+         */
+        <View
+          style={{
+            bottom: 0,
+            flexDirection: 'row',
+            gap,
+            left: 0,
+            position: 'absolute',
+            right: 0,
+            top: 0,
+          }}
+        >
+          {points.map((point, index) => (
+            <Pressable
+              accessibilityLabel={`ดูยอดค่าจ้างงวด${point.label}`}
+              accessibilityRole="button"
+              /* เดือนที่ยังไม่ได้ทำเงินเดือนไม่มีอะไรให้แสดง */
+              disabled={point.pending}
+              key={point.label}
+              onPress={() => onSelect(index)}
+              style={{ flex: 1 }}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -814,6 +857,8 @@ export function ExecutiveHome() {
    * เก็บแยกจากตัวกรองอื่นของจอ เพราะคุมเฉพาะกราฟแนวโน้ม ไม่ได้คุมทั้งหน้า
    */
   const [trendBranchId, setTrendBranchId] = useState<string | null>(null);
+  /* เดือนที่ผู้ใช้แตะบนกราฟค่าจ้าง — null คือยังไม่ได้เลือก ให้ยึดงวดล่าสุด */
+  const [payrollMonth, setPayrollMonth] = useState<number | null>(null);
   const [trendMetric, setTrendMetric] = useState<TrendMetric>('onTime');
   const attendanceTrend = useExecutiveAttendanceTrend(
     trendBranchId ? { branchId: trendBranchId } : {},
@@ -870,7 +915,16 @@ export function ExecutiveHome() {
 
   /* "งวดล่าสุด" ที่โชว์เป็นตัวเลขใหญ่ต้องเป็นเดือนที่ทำเงินเดือนแล้วเท่านั้น */
   const latestIndex = chart.reduce((found, point, index) => (point.hasRun ? index : found), -1);
-  const latest = latestIndex >= 0 ? chart[latestIndex] : null;
+
+  /*
+   * เดือนที่กำลังโชว์เป็นตัวเลขใหญ่ — `null` คือยึดงวดล่าสุดตามค่าเริ่มต้น
+   *
+   * เก็บเป็น null แทนที่จะยัด `latestIndex` ลงไปตอนเริ่ม เพราะ latestIndex
+   * ขยับเองเมื่อมีงวดใหม่ปิด ถ้าจำเป็นตัวเลขไว้ ผู้ใช้ที่เปิดจอค้างข้ามงวด
+   * จะยังเห็นงวดเก่าค้างอยู่ทั้งที่ไม่ได้เลือกเอง
+   */
+  const shownIndex = payrollMonth ?? latestIndex;
+  const shown = shownIndex >= 0 ? (chart[shownIndex] ?? null) : null;
 
   const metrics = insights.data;
   const insightCells: {
@@ -1326,7 +1380,7 @@ export function ExecutiveHome() {
                       }
                     >
                       <View style={{ gap: 14, paddingTop: 4 }}>
-                        {latest ? (
+                        {shown ? (
                           <View style={{ alignItems: 'baseline', flexDirection: 'row', gap: 6 }}>
                             <Text
                               maxScale={1.1}
@@ -1338,10 +1392,10 @@ export function ExecutiveHome() {
                                 letterSpacing: -0.6,
                               }}
                             >
-                              {compact(latest.netPay)}
+                              {compact(shown.netPay)}
                             </Text>
                             <Text style={{ color: AURORA.textMuted, fontSize: 11.5 }}>
-                              {`บาท · งวด${latest.label} · ${latest.employees} คน`}
+                              {`บาท · งวด${shown.label} · ${shown.employees} คน`}
                             </Text>
                           </View>
                         ) : (
@@ -1351,8 +1405,9 @@ export function ExecutiveHome() {
                         )}
 
                         <TrendColumns
+                          onSelect={setPayrollMonth}
                           points={chart.map((point, index) => ({
-                            emphasis: index === latestIndex,
+                            emphasis: index === shownIndex,
                             label: point.label,
                             pending: !point.hasRun,
                             value: point.netPay,
