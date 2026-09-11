@@ -51,8 +51,35 @@ describe('toAuthErrorView', () => {
       }),
     );
 
-    expect(view.message).toBe('ระบบขัดข้องชั่วคราว กรุณาลองใหม่ภายหลัง');
+    expect(view.message).toBe('ระบบขัดข้องชั่วคราว');
+    expect(view.hint).toContain('ลองใหม่');
     expect(view.requestId).toBe('req-1');
+    /* รหัสอ้างอิงแบบสั้นมีเฉพาะตอนต้นเหตุอยู่ฝั่งเซิร์ฟเวอร์ */
+    expect(view.reference).toBe('req-1');
+  });
+
+  it('รหัสผ่านผิดต้องไม่โชว์รหัสอ้างอิง เพราะผู้ใช้ไม่ต้องเอาไปแจ้งใคร', () => {
+    const view = toAuthErrorView(
+      new ApiError('รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง', {
+        requestId: '019e4c70-988e-44b6-b5e7-9ae31ca22e99',
+        status: 401,
+      }),
+    );
+
+    expect(view.message).toBe('รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง');
+    expect(view.hint).toBeNull();
+    expect(view.reference).toBeNull();
+  });
+
+  it('รหัสอ้างอิงแบบสั้นใช้ท่อนท้ายของ UUID ที่เป็นค่าสุ่ม ไม่ใช่ท่อนหน้าที่ซ้ำกันได้', () => {
+    const view = toAuthErrorView(
+      new ApiError('boom', {
+        requestId: '019e4c70-988e-44b6-b5e7-9ae31ca22e99',
+        status: 503,
+      }),
+    );
+
+    expect(view.reference).toBe('9ae31ca22e99');
   });
 
   it('ต้องบังคับอัปเดตแอปแบบลองใหม่ไม่ได้', () => {
@@ -71,6 +98,6 @@ describe('toAuthErrorView', () => {
     const view = toAuthErrorView(new Error('อะไรก็ไม่รู้'));
 
     expect(view.canRetry).toBe(true);
-    expect(view.message).toContain('ลองใหม่');
+    expect(view.hint).toContain('ลองใหม่');
   });
 });

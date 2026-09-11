@@ -26,7 +26,7 @@ import { useAppTheme } from '@/theme/use-app-theme';
 import { useVisibleStatusBarStyle } from '@/theme/use-status-bar-style';
 
 /**
- * เข้าสู่ระบบด้วยอีเมล
+ * เข้าสู่ระบบด้วยรหัสพนักงาน (ผู้ดูแลระบบที่ไม่มีรหัสพนักงานใช้อีเมลในช่องเดียวกัน)
  *
  * จอแรกที่พนักงานเห็น และเป็นจอเดียวที่คนนอกองค์กรก็เปิดถึง — หน้าตาจึงต้อง
  * บอกให้ได้ในสองวินาทีว่านี่คือแอปของบริษัท ไม่ใช่หน้าเข้าสู่ระบบทั่วไป
@@ -47,11 +47,7 @@ import { useVisibleStatusBarStyle } from '@/theme/use-status-bar-style';
  */
 
 const loginFormSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(1, 'กรุณากรอกอีเมล')
-    .email('รูปแบบอีเมลไม่ถูกต้อง'),
+  username: z.string().trim().min(1, 'กรุณากรอกรหัสพนักงาน'),
   password: z.string().min(1, 'กรุณากรอกรหัสผ่าน'),
 });
 
@@ -135,7 +131,7 @@ export default function LoginScreen() {
     formState: { errors, isSubmitting },
     handleSubmit,
   } = useForm<LoginFormValues>({
-    defaultValues: { email: '', password: '' },
+    defaultValues: { username: '', password: '' },
     resolver: zodResolver(loginFormSchema),
   });
 
@@ -307,43 +303,71 @@ export default function LoginScreen() {
                         lineHeight: 17,
                       }}
                     >
-                      ใช้อีเมลบริษัทที่ฝ่ายบุคคลออกให้
+                      ใช้รหัสพนักงานกับรหัสผ่านที่ฝ่ายบุคคลออกให้
                     </Text>
                   </View>
                 </View>
 
                 {banner ? (
+                  /*
+                   * กล่องบอกแค่สิ่งที่เกิดขึ้นหนึ่งบรรทัด แล้วค่อยมีบรรทัดรองถ้าจำเป็น
+                   *
+                   * เดิมมีสามชั้น (หัวข้อ · ข้อความ · UUID ยาวสองบรรทัด) สำหรับกรณีที่
+                   * พบบ่อยสุดคือรหัสผ่านผิด ซึ่งหัวข้อกับข้อความพูดเรื่องเดียวกัน
+                   * และรหัสอ้างอิงไม่มีใครต้องใช้ — ผู้ใช้เห็นกล่องรกก่อนเห็นคำตอบ
+                   *
+                   * พื้นสีจางไม่มีขอบ ตามกติกาแถบเตือนของแอป (AGENTS.md 3.5)
+                   */
                   <View
+                    accessibilityLiveRegion="polite"
+                    accessibilityRole="alert"
                     style={{
-                      backgroundColor: 'rgba(225, 29, 72, 0.07)',
-                      borderColor: 'rgba(225, 29, 72, 0.22)',
-                      borderRadius: 16,
-                      borderWidth: 1,
+                      alignItems: 'flex-start',
+                      backgroundColor: 'rgba(168, 15, 52, 0.07)',
+                      borderRadius: 14,
                       flexDirection: 'row',
                       gap: 10,
-                      padding: 13,
+                      paddingHorizontal: 13,
+                      paddingVertical: 11,
                     }}
                   >
-                    <Icon color={AURORA.rose} name="alert-circle" size={18} />
-                    <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ paddingTop: 1 }}>
+                      <Icon color={AURORA.rose} name="alert-circle" size={17} />
+                    </View>
+                    <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
                       <Text
-                        style={{ color: AURORA.rose, fontWeight: '700' }}
-                        variant="caption"
-                      >
-                        {banner.title}
-                      </Text>
-                      <Text
-                        style={{ color: AURORA.textMuted, lineHeight: 17 }}
-                        variant="caption"
+                        style={{
+                          color: AURORA.rose,
+                          fontSize: 13.5,
+                          fontWeight: '700',
+                          lineHeight: 19,
+                        }}
                       >
                         {banner.message}
                       </Text>
-                      {banner.requestId ? (
+                      {banner.hint ? (
                         <Text
-                          style={{ color: AURORA.textFaint }}
-                          variant="caption"
+                          style={{
+                            color: AURORA.textMuted,
+                            fontSize: 12,
+                            lineHeight: 17,
+                          }}
                         >
-                          รหัสอ้างอิง {banner.requestId}
+                          {banner.hint}
+                        </Text>
+                      ) : null}
+                      {banner.reference ? (
+                        <Text
+                          maxScale={1.1}
+                          numberOfLines={1}
+                          style={{
+                            color: AURORA.textFaint,
+                            fontSize: 11,
+                            fontVariant: ['tabular-nums'],
+                            lineHeight: 15,
+                          }}
+                        >
+                          {`อ้างอิง ${banner.reference}`}
                         </Text>
                       ) : null}
                     </View>
@@ -355,22 +379,21 @@ export default function LoginScreen() {
                 <View style={{ gap: 12 }}>
                   <Controller
                     control={control}
-                    name="email"
+                    name="username"
                     render={({ field: { onBlur, onChange, value } }) => (
                       <Input
                         appearance="aurora"
                         autoCapitalize="none"
-                        autoComplete="email"
+                        autoComplete="username"
                         autoCorrect={false}
-                        error={errors.email?.message}
-                        icon="mail-outline"
-                        keyboardType="email-address"
-                        label="อีเมล"
+                        error={errors.username?.message}
+                        icon="id-card-outline"
+                        label="รหัสพนักงาน"
                         onBlur={onBlur}
                         onChangeText={onChange}
-                        placeholder="employee@company.com"
+                        placeholder="เช่น 690034"
                         returnKeyType="next"
-                        testID="login-email"
+                        testID="login-username"
                         value={value}
                       />
                     )}
