@@ -2499,10 +2499,40 @@ export async function deleteTimeAdjustAttachment(
     },
   );
 }
+
+/**
+ * รายชื่อพนักงาน "ทุกคน" สำหรับตัวเลือกที่ค้นหาฝั่งหน้าเว็บ
+ *
+ * ตัวเลือกพนักงานในกล่องผูกเครื่องสแกนกรองจากรายการที่โหลดไว้ก่อน ไม่ได้ยิง
+ * ค้นหาไปที่เซิร์ฟเวอร์ — ถ้าโหลดมาแค่หน้าแรก คนที่อยู่ถัดจากคนที่ร้อยจะหา
+ * ไม่เจอเลยทั้งที่มีอยู่ในระบบ (เจอครั้งแรกตอนพนักงานเกินร้อยคน 11 ก.ย. 2569)
+ *
+ * backend จำกัดหน้าละร้อย จึงไล่ดึงทีละหน้าจนครบตาม totalPages แทน
+ */
 export async function getTimeAdjustEmployees() {
-  return apiFetch<TimeAdjustEmployeeListResponse>(
-    "/employees?page=1&pageSize=100",
+  const pageSize = 100;
+  const first = await apiFetch<TimeAdjustEmployeeListResponse>(
+    `/employees?page=1&pageSize=${pageSize}`,
   );
+
+  const totalPages = first.meta?.totalPages ?? 1;
+
+  if (totalPages <= 1) {
+    return first;
+  }
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      apiFetch<TimeAdjustEmployeeListResponse>(
+        `/employees?page=${index + 2}&pageSize=${pageSize}`,
+      ),
+    ),
+  );
+
+  return {
+    items: [...first.items, ...rest.flatMap((page) => page.items)],
+    meta: { ...first.meta, page: 1, pageSize: first.meta.total },
+  };
 }
 
 export async function getTimeAdjustAttendanceLogs(
