@@ -16,6 +16,10 @@ import {
   stripTrailingNickname,
 } from '../utils/data-import-value.util';
 import { readCell } from '../utils/data-import-mapping.util';
+import {
+  EMPLOYEE_CODE_RULE_MESSAGE,
+  isValidEmployeeCode,
+} from '../../employees/utils/employee-code.util';
 import type {
   DataImportCommitParams,
   DataImportDataset,
@@ -479,6 +483,11 @@ export class EmployeeImportDataset implements DataImportDataset {
             ? `วันที่เริ่มงาน "${values.startDate}" อ่านไม่ออก (รองรับ วว/ดด/ปปปป)`
             : 'ไม่มีวันที่เริ่มงาน',
         );
+      }
+
+      // กติกาเดียวกับฟอร์มแก้ไข — รหัสนี้ใช้ล็อกอิน ห้ามมีอักขระพิเศษหลุดเข้ามาทางไฟล์
+      if (!isValidEmployeeCode(employeeCode)) {
+        errors.push(EMPLOYEE_CODE_RULE_MESSAGE);
       }
 
       if (seenCodes.has(employeeCode)) {

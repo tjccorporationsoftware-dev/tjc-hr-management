@@ -80,7 +80,7 @@ export async function login(
   const payload = await apiClient.post<unknown>(
     '/mobile/v1/auth/login',
     {
-      email: credentials.email.trim(),
+      username: credentials.username.trim(),
       password: credentials.password,
       installation,
     },

@@ -313,6 +313,9 @@ export class LeavePolicyResolverService {
     /*
      * ลาล่วงหน้า — ต้องยื่นก่อนวันลาอย่างน้อยกี่วัน
      *
+     * "วันล่วงหน้า" นับเฉพาะวันเต็มระหว่างวันที่ยื่นกับวันเริ่มลา ไม่นับวันที่ยื่นเอง
+     * เช่น ตั้งไว้ 1 วัน ยื่นวันที่ 10 → ลาได้เร็วสุดวันที่ 12 (วันที่ 11 คือ 1 วันล่วงหน้า)
+     *
      * ป่วยและคลอดเป็นเหตุที่คาดล่วงหน้าไม่ได้ ถ้าบังคับ จะยื่นใบลาไม่ได้เลย
      */
     if (
@@ -322,13 +325,12 @@ export class LeavePolicyResolverService {
     ) {
       const today = this.dateOnly(params.submittedOn ?? new Date());
       const target = this.dateOnly(startDate);
-      const noticeDays = Math.floor(
-        (target.getTime() - today.getTime()) / MS_PER_DAY,
-      );
+      const noticeDays =
+        Math.floor((target.getTime() - today.getTime()) / MS_PER_DAY) - 1;
 
       if (noticeDays < leaveType.advanceNoticeDays) {
         throw new BadRequestException(
-          `${leaveType.nameTh} ต้องยื่นล่วงหน้าอย่างน้อย ${leaveType.advanceNoticeDays.toLocaleString('th-TH')} วัน` +
+          `${leaveType.nameTh} ต้องยื่นล่วงหน้าอย่างน้อย ${leaveType.advanceNoticeDays.toLocaleString('th-TH')} วัน ไม่นับวันที่ยื่น` +
             ` (คำขอนี้ล่วงหน้า ${Math.max(noticeDays, 0).toLocaleString('th-TH')} วัน)`,
         );
       }

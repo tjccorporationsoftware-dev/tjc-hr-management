@@ -178,6 +178,9 @@ export class LeaveBalancesService {
       where: {
         employeeId: employee.id,
         year,
+        // ประเภทลาที่บริษัทปิดใช้แล้ว ยอดเดิมยังอยู่แต่ต้องไม่โผล่ให้พนักงานเลือกยื่น
+        // (ฟอร์มในแอปมือถือและการ์ดสิทธิ์คงเหลือบนเว็บดึงจากรายการนี้)
+        leaveType: { status: 'ACTIVE', deletedAt: null },
       },
       include: this.leaveBalanceInclude(),
       orderBy: {

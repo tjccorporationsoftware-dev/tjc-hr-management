@@ -440,9 +440,9 @@ export default function JobPostingDetailPage() {
           const byPhone = account?.passwordSource === "PHONE";
 
           const accountLine = account?.created
-            ? `\n\nเปิดบัญชีเข้าระบบให้แล้ว\nอีเมล: ${account.email}\nรหัสผ่านเริ่มต้น: ${account.temporaryPassword}` +
+            ? `\n\nเปิดบัญชีเข้าระบบให้แล้ว\nรหัสพนักงาน (ใช้เข้าสู่ระบบ): ${account.loginId ?? result.employee.employeeCode}\nรหัสผ่านเริ่มต้น: ${account.temporaryPassword}` +
               (byPhone
-                ? "\n(คือเบอร์โทรของพนักงาน เฉพาะตัวเลข — ระบบบังคับให้เปลี่ยนตอนเข้าครั้งแรก)"
+                ? "\n(คือชื่อบริษัทตามด้วยเบอร์โทรของพนักงาน เฉพาะตัวเลข — ระบบบังคับให้เปลี่ยนตอนเข้าครั้งแรก)"
                 : "\n(ไม่มีเบอร์โทรที่ใช้ได้ ระบบจึงสุ่มให้ — คัดลอกส่งให้พนักงาน รหัสนี้จะไม่แสดงอีก)") +
               /* ขอบเขตควรเป็นระดับสาขา ถ้าหลุดเป็นทั้งบริษัทต้องเห็นตรงนี้ ไม่ใช่ไปเจอทีหลัง */
               `\nขอบเขต: ${account.scopeLevel === "BRANCH" ? "เฉพาะสาขาของตัวเอง" : "ทั้งบริษัท"}` +

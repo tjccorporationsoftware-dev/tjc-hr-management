@@ -110,6 +110,9 @@ const MIN_LINE_ROWS: Record<PayslipPaperLayout, number> = {
   FULL: 8,
   HALF: 5,
 };
+const PAYSLIP_CONFIDENTIAL_NOTICE =
+  'สลิปเงินเดือนถือเป็นความลับ ไม่ควรเผยแพร่หรือเผยแพร่ให้พนักงานท่านอื่นทราบ ' +
+  'และการกระทำดังกล่าวหากส่งผลกระทบต่อบริษัท มีบทลงโทษโดยให้ออกจากการเป็นพนักงานของบริษัททันที';
 
 /** ขนาดกระดาษของแต่ละรูปแบบ ใช้ทั้งใน @page และตอนสั่ง puppeteer */
 const PAPER_CSS: Record<PayslipPaperLayout, string> = {
@@ -676,6 +679,17 @@ export function buildPayslipHtml(
       font-size: 10px;
     }
 
+    .notice {
+    padding: 7px 14px 8px;
+    border-top: 1px solid var(--rule-soft);
+    color: var(--ink-soft);
+    font-size: 10px;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+.notice-label { font-weight: 800; color: var(--ink); }
+
     /* ---------- ท้ายเอกสาร ---------- */
 
     .footer {
@@ -847,6 +861,8 @@ export function buildPayslipHtml(
       font-size: 8.4px;
     }
 
+    body.half .notice { padding: 5px 10px 6px; font-size: 8.6px; line-height: 1.35; }
+
     body.half .footer {
       padding: 4px 10px 5px;
       font-size: 8.2px;
@@ -990,6 +1006,10 @@ export function buildPayslipHtml(
       </div>
     </div>
 
+    <div class="notice">
+      <span class="notice-label">หมายเหตุ:</span> ${escapeHtml(PAYSLIP_CONFIDENTIAL_NOTICE)}
+    </div>
+    
     <div class="footer">
       <div class="confidential">เอกสารลับเฉพาะบุคคล — โปรดเก็บรักษาไว้เป็นความลับ${
         branchNote ? `  ·  ${escapeHtml(branchNote)}` : ''

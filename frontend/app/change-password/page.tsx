@@ -33,13 +33,12 @@ function passwordRules(password: string, identity: string[]) {
 
   return [
     {
-      label: "ยาว 12–128 ตัวอักษร",
-      passed: password.length >= 12 && password.length <= 128,
+      label: "ยาว 10–128 ตัวอักษร",
+      passed: password.length >= 10 && password.length <= 128,
     },
     { label: "มีตัวพิมพ์เล็ก", passed: /[a-z]/.test(password) },
     { label: "มีตัวพิมพ์ใหญ่", passed: /[A-Z]/.test(password) },
     { label: "มีตัวเลข", passed: /\d/.test(password) },
-    { label: "มีอักขระพิเศษ", passed: /[^A-Za-z0-9]/.test(password) },
     { label: "ไม่มีช่องว่าง", passed: password.length > 0 && !/\s/.test(password) },
     {
       label: "ไม่มีคำเดาง่าย (password · admin · employee · qwerty · 123456)",

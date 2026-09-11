@@ -9,7 +9,7 @@ export class ChangeOwnPasswordDto {
   currentPassword!: string;
 
   @IsString()
-  @MinLength(12, { message: "รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร" })
+  @MinLength(10, { message: "รหัสผ่านต้องมีอย่างน้อย 10 ตัวอักษร" })
   @MaxLength(128, { message: "รหัสผ่านต้องไม่เกิน 128 ตัวอักษร" })
   newPassword!: string;
 }

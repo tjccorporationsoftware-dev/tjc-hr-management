@@ -13,7 +13,7 @@ export class CreateUserDto {
   email?: string;
 
   @IsString()
-  @MinLength(12, { message: "รหัสผ่านต้องมีอย่างน้อย 12 ตัวอักษร" })
+  @MinLength(10, { message: "รหัสผ่านต้องมีอย่างน้อย 10 ตัวอักษร" })
   password!: string;
 
   @IsOptional()

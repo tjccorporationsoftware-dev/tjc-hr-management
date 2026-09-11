@@ -42,6 +42,10 @@ import { ThaiDateInput } from "@/components/common/thai-date-input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EMPLOYEE_STATUS } from "@/lib/status-labels";
 import {
+  EMPLOYEE_CODE_RULE_MESSAGE,
+  isValidEmployeeCode,
+} from "@/lib/employee-code";
+import {
   ApiClientError,
   apiFetch,
   apiFetchBlob,
@@ -601,6 +605,11 @@ export default function EmployeeDetailPage() {
 
     if (!editForm.employeeCode.trim()) {
       toast.error("กรุณากรอกรหัสพนักงาน");
+      return;
+    }
+
+    if (!isValidEmployeeCode(editForm.employeeCode)) {
+      toast.error(EMPLOYEE_CODE_RULE_MESSAGE);
       return;
     }
 

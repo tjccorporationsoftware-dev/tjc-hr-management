@@ -822,6 +822,7 @@ export class RecruitmentService {
        */
       const account = await this.createEmployeeAccount(tx, {
         employeeId: employee.id,
+        employeeCode,
         email: application.email,
         phone: application.phone,
         displayName: `${application.firstName} ${application.lastName}`,
@@ -834,16 +835,21 @@ export class RecruitmentService {
   }
 
   /**
-   * เปิดบัญชีเข้าระบบให้พนักงานที่เพิ่งจ้าง
+   * เปิดบัญชีเข้าระบบให้พนักงานที่เพิ่งจ้าง — เปิดให้ทุกคน ไม่ต้องมีอีเมล
+   *
+   * ชื่อผู้ใช้ = รหัสพนักงาน (หน้าล็อกอินเว็บ/แอปใช้รหัสพนักงานแล้ว)
+   * อีเมลในบัญชีเป็นแค่ของแถม: ผู้สมัครกรอกมาก็ใช้ ไม่กรอกก็ตั้งอีเมลภายใน
+   * <รหัสพนักงาน>@<รหัสบริษัท>.local ให้ (คอลัมน์ email ยัง unique/บังคับ)
    *
    * เรื่องรหัสผ่านเริ่มต้น
    * ---------------------
-   * ใช้ "เบอร์โทรของพนักงาน" เป็นรหัสเริ่มต้นตามที่ตกลงไว้ เพื่อให้ HR ไม่ต้อง
-   * คัดลอกรหัสไปส่งต่อ — บอกพนักงานได้เลยว่าใช้เบอร์ตัวเอง
+   * รูปแบบ {รหัสบริษัทตัวแรกพิมพ์ใหญ่}{เบอร์โทรเฉพาะตัวเลข} เช่น Tjc0891234567
+   * ตามที่ตกลงกับลูกค้า (2569-09-11) — HR บอกพนักงานได้ปากเปล่าโดยไม่ต้องจดรหัส
+   * และมีตัวอักษรนำเพื่อไม่ให้เป็นเบอร์โทรล้วน ๆ
    *
-   * รหัสแบบนี้เดาง่ายมาก (เบอร์โทรอยู่ในแฟ้มพนักงานที่คนใน HR เห็นได้)
-   * จึงกันความเสี่ยงด้วย mustChangePassword — ล็อกอินได้ครั้งเดียวแล้วต้อง
-   * เปลี่ยนทันที ระบบบล็อกทุก API จนกว่าจะเปลี่ยน รหัสเบอร์โทรจึงมีอายุสั้นมาก
+   * รหัสแบบนี้เดาง่าย (เบอร์โทรอยู่ในแฟ้มพนักงานที่คนใน HR เห็นได้) จึงกันด้วย
+   * mustChangePassword — ล็อกอินได้ครั้งเดียวแล้วต้องเปลี่ยนทันที ระบบบล็อกทุก API
+   * จนกว่าจะเปลี่ยน
    *
    * เส้นทางนี้ไม่ผ่าน assertStrongPassword โดยตั้งใจ (กฎห้ามใช้ข้อมูลส่วนตัว
    * และบังคับ 12 ตัวอักษร) — ยกเว้นเฉพาะรหัสเริ่มต้นตรงนี้เท่านั้น
@@ -855,6 +861,7 @@ export class RecruitmentService {
     tx: Prisma.TransactionClient,
     input: {
       employeeId: string;
+      employeeCode: string;
       email?: string | null;
       phone?: string | null;
       displayName: string;
@@ -862,26 +869,37 @@ export class RecruitmentService {
       branchId?: string | null;
     },
   ) {
-    const email = input.email ? normalizeEmail(input.email) : undefined;
-
-    if (!email) {
-      return { created: false, reason: 'ผู้สมัครไม่ได้ระบุอีเมล จึงยังเปิดบัญชีให้ไม่ได้' };
-    }
-
-    const existing = await tx.user.findFirst({
-      where: { email },
-      select: { id: true },
+    const company = await tx.company.findUnique({
+      where: { id: input.companyId },
+      select: { code: true },
     });
+    const companyCode = (company?.code ?? 'TJC').replace(/[^A-Za-z0-9]/g, '');
 
-    if (existing) {
-      // อีเมลนี้มีบัญชีอยู่แล้ว ผูกเข้ากับพนักงานใหม่แทนการสร้างซ้ำ
-      await tx.employee.update({
-        where: { id: input.employeeId },
-        data: { userId: existing.id },
+    const providedEmail = input.email ? normalizeEmail(input.email) : null;
+
+    if (providedEmail) {
+      const existing = await tx.user.findFirst({
+        where: { email: providedEmail },
+        select: { id: true },
       });
 
-      return { created: false, reason: 'อีเมลนี้มีบัญชีอยู่แล้ว ระบบผูกบัญชีเดิมให้แทน' };
+      if (existing) {
+        // อีเมลนี้มีบัญชีอยู่แล้ว ผูกเข้ากับพนักงานใหม่แทนการสร้างซ้ำ
+        await tx.employee.update({
+          where: { id: input.employeeId },
+          data: { userId: existing.id },
+        });
+
+        return {
+          created: false,
+          reason: 'อีเมลนี้มีบัญชีอยู่แล้ว ระบบผูกบัญชีเดิมให้แทน',
+        };
+      }
     }
+
+    const email =
+      providedEmail ??
+      `${input.employeeCode}@${companyCode}.local`.toLowerCase();
 
     const role = await tx.role.findFirst({
       where: { code: 'EMPLOYEE', OR: [{ companyId: null }, { companyId: input.companyId }] },
@@ -901,8 +919,10 @@ export class RecruitmentService {
 
     // ต่ำกว่า 8 ตัวจะติดกฎความยาวขั้นต่ำตอนล็อกอิน ใช้เป็นรหัสไม่ได้
     const usePhone = phoneDigits.length >= 8;
+    const passwordPrefix =
+      companyCode.charAt(0).toUpperCase() + companyCode.slice(1).toLowerCase();
     const temporaryPassword = usePhone
-      ? phoneDigits
+      ? `${passwordPrefix}${phoneDigits}`
       : this.generateTemporaryPassword();
 
     /*
@@ -942,6 +962,8 @@ export class RecruitmentService {
     return {
       created: true,
       userId: user.id,
+      /** สิ่งที่พนักงานพิมพ์ในช่องแรกของหน้าล็อกอิน */
+      loginId: input.employeeCode,
       email: user.email,
       scopeLevel: scope.level,
       scopeNote: scope.note,
@@ -949,7 +971,7 @@ export class RecruitmentService {
       // บอกที่มาของรหัส เพื่อให้หน้าเว็บเลือกข้อความให้ HR ได้ถูก
       passwordSource: usePhone ? ('PHONE' as const) : ('RANDOM' as const),
       note: usePhone
-        ? 'รหัสเริ่มต้นคือเบอร์โทรของพนักงาน (เฉพาะตัวเลข) — ระบบบังคับให้เปลี่ยนตอนเข้าครั้งแรก'
+        ? `รหัสเริ่มต้นคือ ${passwordPrefix} ตามด้วยเบอร์โทรของพนักงาน (เฉพาะตัวเลข) — ระบบบังคับให้เปลี่ยนตอนเข้าครั้งแรก`
         : 'ไม่มีเบอร์โทรที่ใช้เป็นรหัสได้ ระบบจึงสุ่มรหัสให้ — ส่งรหัสนี้ให้พนักงาน',
     };
   }
@@ -1134,16 +1156,7 @@ export class RecruitmentService {
     companyId: string,
     startDate: Date,
   ) {
-    const company = await tx.company.findUnique({
-      where: { id: companyId },
-      select: { code: true },
-    });
-
-    return generateEmployeeCode(tx, {
-      companyId,
-      companyCode: company?.code ?? null,
-      startDate,
-    });
+    return generateEmployeeCode(tx, { companyId, startDate });
   }
 
   /** อีเมลของผู้สมัคร — เก็บรูปแบบเดียวกับตอนล็อกอิน ไม่งั้นพอจ้างแล้วเข้าระบบไม่ได้ */

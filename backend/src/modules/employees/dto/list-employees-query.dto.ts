@@ -59,6 +59,15 @@ export class ListEmployeesQueryDto {
   @IsBoolean()
   includeFormerEmployees?: boolean;
 
+  /**
+   * กรองตามการมีบัญชีผู้ใช้ — false = ยังไม่มีบัญชี (ใช้ตอนเปิดบัญชีให้พนักงาน)
+   * ไม่ระบุ = ไม่กรอง
+   */
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  hasUser?: boolean;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

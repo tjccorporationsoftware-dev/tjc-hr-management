@@ -1,14 +1,14 @@
 # เข้าสู่ระบบจนถึงหน้าหลัก
 #
 # ใช้เป็นจุดเริ่มของ flow ที่ไม่ได้ทดสอบตัวการล็อกอินเอง
-# รับ EMAIL / PASSWORD / PIN มาเป็นตัวแปร จึงสลับบัญชีได้ต่อ flow
+# รับ EMAIL (รหัสพนักงานหรืออีเมล) / PASSWORD / PIN มาเป็นตัวแปร จึงสลับบัญชีได้ต่อ flow
 appId: ${APP_ID}
 ---
 - clearState
 - launchApp
 
 - tapOn:
-    id: 'login-email'
+    id: 'login-username'
 - inputText: ${EMAIL}
 - tapOn:
     id: 'login-password'

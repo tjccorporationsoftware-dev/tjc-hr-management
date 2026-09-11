@@ -897,15 +897,12 @@ export class UsersService {
     }
 
     const rules = [
-      { valid: password.length >= 12, message: "ต้องมีอย่างน้อย 12 ตัวอักษร" },
+      { valid: password.length >= 10, message: "ต้องมีอย่างน้อย 10 ตัวอักษร" },
       { valid: password.length <= 128, message: "ต้องไม่เกิน 128 ตัวอักษร" },
       { valid: /[a-z]/.test(password), message: "ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว" },
       { valid: /[A-Z]/.test(password), message: "ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว" },
       { valid: /\d/.test(password), message: "ต้องมีตัวเลขอย่างน้อย 1 ตัว" },
-      {
-        valid: /[^A-Za-z0-9]/.test(password),
-        message: "ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว",
-      },
+      // ไม่บังคับอักขระพิเศษ — ต้องตรงกับ auth.service.assertStrongPassword
     ];
 
     const failedRule = rules.find((rule) => !rule.valid);
@@ -956,21 +953,36 @@ export class UsersService {
     }
   }
 
+  /**
+   * อีเมลของบัญชี — ตั้งแต่เปลี่ยนมาเข้าระบบด้วยรหัสพนักงาน อีเมลไม่ใช่ทางเข้าหลักแล้ว
+   *
+   * บัญชีที่ผูกพนักงาน: ไม่กรอกก็ได้ ใช้อีเมลจากทะเบียนพนักงาน หรือถ้าไม่มีก็
+   * ตั้งอีเมลภายในให้เป็น <รหัสพนักงาน>@<รหัสบริษัท>.local (รูปแบบเดียวกับ
+   * บัญชีที่ seed มาแต่แรก เช่น 670028@tjc.local) เพราะคอลัมน์ email ยัง unique/บังคับ
+   *
+   * บัญชีที่ไม่ผูกพนักงาน (ผู้ดูแล): ยังต้องมีอีเมลจริง เพราะใช้อีเมลเข้าระบบ
+   */
   private resolveUserEmail(
     inputEmail?: string,
     employee?: {
       email: string | null;
+      employeeCode?: string | null;
+      company?: { code: string } | null;
     } | null,
   ) {
     const email = inputEmail?.trim() || employee?.email?.trim();
 
-    if (!email) {
-      throw new BadRequestException(
-        "กรุณาระบุอีเมล หรือเพิ่มอีเมลในข้อมูลพนักงานก่อนสร้างผู้ใช้",
-      );
+    if (email) return email.toLowerCase();
+
+    if (employee?.employeeCode && employee.company?.code) {
+      return `${employee.employeeCode}@${employee.company.code}.local`
+        .toLowerCase()
+        .replace(/\s+/g, '');
     }
 
-    return email.toLowerCase();
+    throw new BadRequestException(
+      'บัญชีที่ไม่ผูกพนักงานต้องระบุอีเมลเข้าสู่ระบบ',
+    );
   }
 
   private resolveUserDisplayName(

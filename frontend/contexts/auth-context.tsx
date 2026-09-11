@@ -27,7 +27,8 @@ import type {
 } from "@/types/auth";
 
 type LoginInput = {
-  email: string;
+  /** รหัสพนักงาน หรืออีเมลสำหรับบัญชีผู้ดูแลที่ไม่มีรหัสพนักงาน */
+  username: string;
   password: string;
 };
 

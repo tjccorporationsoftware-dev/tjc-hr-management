@@ -11,11 +11,11 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
+  IdCard,
   KeyRound,
   Loader2,
   LockKeyhole,
   LogIn,
-  Mail,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -80,7 +80,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login, verifyTwoFactor, isAuthenticated, isLoading, user } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +106,7 @@ export default function LoginPage() {
       setSubmitting(true);
 
       const result = await login({
-        email,
+        username,
         password,
       });
 
@@ -252,7 +252,7 @@ export default function LoginPage() {
                       เข้าสู่ระบบ
                     </h1>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      ใช้อีเมลบริษัทที่ฝ่ายบุคคลออกให้
+                      ใช้รหัสพนักงานกับรหัสผ่านที่ฝ่ายบุคคลออกให้
                     </p>
                   </div>
                 </div>
@@ -263,21 +263,24 @@ export default function LoginPage() {
                   <div className="space-y-3">
                     <div>
                       <label
-                        htmlFor="login-email"
+                        htmlFor="login-username"
                         className="mb-1.5 block text-[12.5px] font-medium text-slate-600"
                       >
-                        อีเมล
+                        รหัสพนักงาน
                       </label>
                       <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
+                        <IdCard className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" />
+                        {/* ผู้ดูแลระบบที่ไม่มีรหัสพนักงานใส่อีเมลในช่องนี้ได้ ฝั่ง backend แยกเอง */}
                         <input
-                          id="login-email"
-                          value={email}
-                          onChange={(event) => setEmail(event.target.value)}
-                          type="email"
-                          autoComplete="email"
+                          id="login-username"
+                          value={username}
+                          onChange={(event) => setUsername(event.target.value)}
+                          type="text"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          spellCheck={false}
                           className={INPUT_WITH_ICON}
-                          placeholder="employee@company.com"
+                          placeholder="เช่น 690034"
                         />
                       </div>
                     </div>
@@ -442,7 +445,7 @@ export default function LoginPage() {
                     className="mt-2.5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-4 text-[13px] font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-65"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    กลับไปกรอกอีเมลและรหัสผ่านใหม่
+                    กลับไปกรอกรหัสพนักงานและรหัสผ่านใหม่
                   </button>
                 </form>
               </>

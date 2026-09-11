@@ -51,16 +51,45 @@ type AttendanceImportPayload = {
   punches: ImportedPunch[];
 };
 
-/** ช่องเวลาแตะบัตรในไฟล์รายงาน สลับ IN/OUT ไปเรื่อย ๆ */
-const PUNCH_FIELD_COUNT = 6;
+/**
+ * ช่องเวลาแตะบัตรในไฟล์รายงาน สลับ IN/OUT ไปเรื่อย ๆ
+ *
+ * ไฟล์มี 12 ช่อง (คู่ IN/OUT 6 คู่) เดิมประกาศไว้ 6 ช่อง รอยที่ 7 เป็นต้นไปจึงหายเงียบ
+ * รวมถึง "รอยสุดท้าย" ที่ใช้เป็นเวลาออกงาน — วันที่แตะเกิน 6 ครั้งจะได้เวลาออกงานผิด
+ */
+const PUNCH_FIELD_COUNT = 12;
 
 /**
- * ช่วงเวลาที่ยอมรับว่าเป็น "รอยเข้างานบ่าย" — เทียบเป็นสตริง "HH:mm" ได้เลย
- * กว้างพอคลุมทั้งกะ 08:00-17:00 (รอบบ่ายเปิด 12:00 ปิด 16:59) และกะ 07:30-16:30
- * (เปิด 11:30) รอยที่หลุดช่วงนี้ไม่ใช่การกลับจากพักเที่ยง
+ * ขอบเขตของแต่ละรอบ คิดจาก "กะการทำงาน" ในไฟล์ ไม่ใช่ค่าคงที่ชุดเดียวทั้งบริษัท
+ * -----------------------------------------------------------------------------
+ * เดิมยึดว่ารอยแรกของวัน = เข้างานเช้าเสมอ ซึ่งผิดกับวันที่ลาครึ่งเช้า
+ * คนกลับมาเข้างานบ่าย 12:51 จะถูกบันทึกเป็น "เข้าเช้า 12:51" แล้วขึ้นว่า
+ * ไม่ได้สแกนเข้าบ่าย ทั้งที่รอยนั้นคือรอยเข้าบ่ายตรง ๆ
+ *
+ * ค่าที่ได้ต้องตรงกับ attendance_session_rules ของกะนั้นในระบบ
+ *   กะ 08:00-17:00 → เช้าเปิด 06:00 · บ่ายเปิด 12:00 · บ่ายปิด 16:59
+ *   กะ 07:30-16:30 → เช้าเปิด 05:30 · บ่ายเปิด 11:30 · บ่ายปิด 16:29
+ * จึงคิดจากเวลาเข้า-ออกของกะ: เช้าเปิด = เข้างาน − 2 ชม. · บ่ายเปิด = เข้างาน + 4 ชม.
+ * · บ่ายปิด = เลิกงาน − 1 นาที
  */
-const AFTERNOON_WINDOW_START = '11:30';
-const AFTERNOON_WINDOW_END = '16:59';
+const DEFAULT_SHIFT = '08:00 - 17:00';
+
+/**
+ * ก่อนหน้านี้กี่นาทีที่ยังนับว่า "มาก่อนเวลา" ไม่ใช่รอยตกค้างของกะเมื่อวาน
+ * ต้องเท่ากับ DEFAULT_PUNCH_LOOKBACK_MINUTES ที่ตัวคำนวณใช้ (shift-window.util)
+ * ถ้าปล่อยรอยที่เลยขอบนี้ให้เป็นรอยเข้าเช้า ตัวคำนวณจะอ่านว่าเป็นของวันถัดไป
+ * แล้วคิดสายเกือบ 1,000 นาที (คนเลิกงานหลังเที่ยงคืนแล้วแตะบัตรตอน 00:10)
+ */
+const PUNCH_LOOKBACK_MINUTES = 240;
+
+type ShiftBounds = {
+  /** ก่อนเวลานี้ไม่ถือเป็นรอยเข้างานเช้าของวันนี้ */
+  earliestMorning: string;
+  /** ตั้งแต่เวลานี้ถือว่าเป็นรอบบ่ายแล้ว ไม่ใช่รอบเช้า */
+  afternoonStart: string;
+  /** หลังเวลานี้ไม่ใช่การกลับจากพักเที่ยงแล้ว */
+  afternoonEnd: string;
+};
 
 /**
  * แหล่งที่มาของ log ที่มาจากการนำเข้าไฟล์
@@ -69,6 +98,48 @@ const AFTERNOON_WINDOW_END = '16:59';
  * ของรอบก่อนทิ้งก่อนเขียนใหม่ ถ้าไม่แยกไว้จะไปลบเวลาที่พนักงานแตะจริงทิ้งด้วย
  */
 const IMPORT_SOURCE = 'IMPORT';
+
+/** "HH:mm" -> จำนวนนาที (คืน null ถ้าอ่านไม่ออก) */
+function parseClock(time: string | null | undefined): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? '').trim());
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+
+  return hour * 60 + minute;
+}
+
+/** จำนวนนาที -> "HH:mm" วนรอบวันให้เสมอ (−90 นาที = 22:30 ของเมื่อวาน) */
+function formatClock(minutes: number): string {
+  const wrapped = ((minutes % 1440) + 1440) % 1440;
+  const hour = Math.floor(wrapped / 60);
+
+  return `${String(hour).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+}
+
+/** อ่าน "08:00 - 17:00" เป็นขอบเขตของแต่ละรอบ */
+function resolveShiftBounds(shift: string | null | undefined): ShiftBounds {
+  const match = /^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/.exec(
+    String(shift ?? '').trim(),
+  );
+
+  const start = parseClock(match?.[1]) ?? parseClock(DEFAULT_SHIFT.slice(0, 5));
+  const end = parseClock(match?.[2]) ?? parseClock(DEFAULT_SHIFT.slice(-5));
+
+  if (start === null || end === null) {
+    return { earliestMorning: '02:00', afternoonStart: '12:00', afternoonEnd: '16:59' };
+  }
+
+  const morningOpen = start - 120;
+
+  return {
+    earliestMorning: formatClock(morningOpen - PUNCH_LOOKBACK_MINUTES),
+    afternoonStart: formatClock(start + 240),
+    afternoonEnd: formatClock(end - 1),
+  };
+}
 
 function buildPunchFields(): DataImportFieldDef[] {
   return Array.from({ length: PUNCH_FIELD_COUNT }, (_, index) => {
@@ -88,7 +159,7 @@ function buildPunchFields(): DataImportFieldDef[] {
       type: 'TEXT' as const,
       hint:
         order === 1
-          ? 'ครั้งแรกของวัน = เข้างานเช้า'
+          ? 'ระบบจะเทียบเวลากับกะเองว่าเป็นรอบเช้า/บ่าย/ออกงาน'
           : 'เว้นว่างได้ถ้าวันนั้นแตะไม่ครบ',
     };
   });
@@ -138,6 +209,13 @@ export class AttendanceImportDataset implements DataImportDataset {
       aliases: ['สถานะ'],
       type: 'TEXT',
       hint: 'เช่น วันทำงาน / วันหยุดพนักงาน — ใช้แสดงในพรีวิวเท่านั้น',
+    },
+    {
+      key: 'shift',
+      label: 'กะการทำงาน',
+      aliases: ['กะการทำงาน', 'กะทำงาน', 'กะ'],
+      type: 'TEXT',
+      hint: 'เช่น 08:00 - 17:00 — ใช้ตัดสินว่ารอยแตะบัตรแต่ละรอยเป็นรอบไหน',
     },
     ...buildPunchFields(),
   ];
@@ -233,11 +311,12 @@ export class AttendanceImportDataset implements DataImportDataset {
         errors.push(`ไม่พบพนักงานรหัส ${currentCode} ในบริษัทนี้`);
       }
 
-      const sessions = this.assignSessions(punches);
+      const shift = readCell(row, mapping, 'shift');
+      const sessions = this.assignSessions(punches, shift);
 
       if (punches.length > 3) {
         warnings.push(
-          `วันนี้แตะบัตร ${punches.length} ครั้ง — ใช้ครั้งแรกเป็นเข้าเช้า ครั้งสุดท้ายเป็นออกงาน ที่เหลือถือเป็นเข้าบ่าย`,
+          `วันนี้แตะบัตร ${punches.length} ครั้ง — เทียบกับกะ ${shift || DEFAULT_SHIFT} แล้วเลือกรอยเข้าเช้า/เข้าบ่าย/ออกงาน ที่เหลือเก็บไว้เฉย ๆ`,
         );
       }
 
@@ -386,41 +465,64 @@ export class AttendanceImportDataset implements DataImportDataset {
    *
    * แตะครั้งเดียวถือว่ามีแค่เข้างานเช้า ไม่เดาว่าออกงานตอนไหน
    */
-  private assignSessions(punches: RawPunch[]): ImportedPunch[] {
+  private assignSessions(
+    punches: RawPunch[],
+    shift?: string | null,
+  ): ImportedPunch[] {
     if (punches.length === 0) return [];
 
-    if (punches.length === 1) {
-      return [{ session: 'MORNING', time: punches[0].time }];
-    }
-
-    const middles = punches.slice(1, -1);
+    const bounds = resolveShiftBounds(shift);
+    const sessions: ImportedPunch[] = punches.map((punch) => ({
+      session: 'CUSTOM' as AttendanceSession,
+      time: punch.time,
+    }));
 
     /*
-     * เลือกจากรอยกลางที่อยู่ในช่วงเช็คอินบ่ายเท่านั้น กว้างพอคลุมทั้งสองกะ
-     * (กะ 08:00-17:00 เปิดรอบบ่าย 12:00 · กะ 07:30-16:30 เปิด 11:30)
-     * ในกลุ่มนั้นเอาช่อง IN ตัวท้ายสุด = กลับจากพักเที่ยง ไม่มี IN ก็เอาตัวท้ายสุด
+     * รอยแรกเป็น "เข้างานเช้า" ได้ต่อเมื่ออยู่ในช่วงที่กะยอมรับเท่านั้น
+     *
+     * เร็วเกินขอบล่าง = รอยตกค้างของกะเมื่อวาน (แตะออกงานตอน 00:10)
+     * ถึงเวลาเปิดรอบบ่ายแล้ว = คนที่ลาครึ่งเช้าแล้วกลับมาเข้าบ่าย ไม่ใช่มาสาย 5 ชั่วโมง
+     * ทั้งสองกรณีถ้าปักเป็นเข้าเช้า ตัวคำนวณจะคิดสายเป็นร้อยเป็นพันนาที
+     */
+    const first = punches[0];
+    const hasMorning =
+      first.time >= bounds.earliestMorning && first.time < bounds.afternoonStart;
+
+    if (hasMorning) sessions[0].session = 'MORNING';
+
+    /* รอยสุดท้ายคือออกงานเสมอ ตราบใดที่ไม่ใช่รอยเดียวกับรอยเข้างานเช้า */
+    const lastIndex = punches.length - 1;
+    const hasCheckout = lastIndex > 0;
+
+    if (hasCheckout) sessions[lastIndex].session = 'EVENING';
+
+    /*
+     * เข้างานบ่าย = ช่อง IN ตัวท้ายสุดที่อยู่ในช่วงเช็คอินบ่าย (กลับจากพักเที่ยง)
+     * ไม่มีช่อง IN ในช่วงนั้นก็เอารอยท้ายสุดในช่วงแทน
+     *
+     * เดิมหยิบ "ช่องท้ายสุดของรอยกลาง" เฉย ๆ ซึ่งพังกับวันที่แตะ 4 ครั้งแบบ
+     * 07:57 12:09 17:25 17:37 (ออกพักเที่ยงแล้วไม่ได้แตะกลับ ตอนเย็นแตะสองที)
+     * มันไปเลือก 17:25 เป็นเข้าบ่าย แล้วกลายเป็นสายบ่าย 245 นาทีทั้งที่ไม่ได้สาย
      */
     const inAfternoonWindow = (punch: RawPunch) =>
-      punch.time >= AFTERNOON_WINDOW_START && punch.time <= AFTERNOON_WINDOW_END;
+      punch.time >= bounds.afternoonStart && punch.time <= bounds.afternoonEnd;
+
+    const firstCandidate = hasMorning ? 1 : 0;
+    const lastCandidate = hasCheckout ? lastIndex - 1 : lastIndex;
 
     let afternoonIndex = -1;
-    for (let index = middles.length - 1; index >= 0; index -= 1) {
-      if (!inAfternoonWindow(middles[index])) continue;
+    for (let index = lastCandidate; index >= firstCandidate; index -= 1) {
+      if (!inAfternoonWindow(punches[index])) continue;
       if (afternoonIndex === -1) afternoonIndex = index;
-      if (middles[index].isIn) {
+      if (punches[index].isIn) {
         afternoonIndex = index;
         break;
       }
     }
 
-    return [
-      { session: 'MORNING' as const, time: punches[0].time },
-      ...middles.map((punch, index): ImportedPunch => ({
-        session: index === afternoonIndex ? 'AFTERNOON' : 'CUSTOM',
-        time: punch.time,
-      })),
-      { session: 'EVENING' as const, time: punches[punches.length - 1].time },
-    ];
+    if (afternoonIndex >= 0) sessions[afternoonIndex].session = 'AFTERNOON';
+
+    return sessions;
   }
 
   private timeOf(punches: ImportedPunch[], session: AttendanceSession) {

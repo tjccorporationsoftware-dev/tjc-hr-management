@@ -11,6 +11,11 @@ import {
 } from "@/components/kit";
 import { ThaiDateInput } from "@/components/common/thai-date-input";
 import {
+  EMPLOYEE_CODE_MAX_LENGTH,
+  EMPLOYEE_CODE_RULE_MESSAGE,
+  isValidEmployeeCode,
+} from "@/lib/employee-code";
+import {
   departmentFitsBranch,
   filterDepartmentsByScope,
 } from "@/lib/department-options";
@@ -210,12 +215,24 @@ export function EditEmployeeModal({
       <div className="space-y-6">
         <FormSection title="ข้อมูลระบุตัวตน">
           <FieldGrid columns={3}>
-            <Field label="รหัสพนักงาน" required>
+            <Field
+              label="รหัสพนักงาน"
+              required
+              hint={
+                form.employeeCode && !isValidEmployeeCode(form.employeeCode)
+                  ? EMPLOYEE_CODE_RULE_MESSAGE
+                  : "ใช้เป็นชื่อผู้ใช้เข้าระบบ — อักษรอังกฤษหรือตัวเลขเท่านั้น"
+              }
+            >
               <TextInput
                 value={form.employeeCode}
                 onChange={(event) =>
                   setField("employeeCode", event.target.value)
                 }
+                maxLength={EMPLOYEE_CODE_MAX_LENGTH}
+                autoCapitalize="none"
+                spellCheck={false}
+                className="font-mono"
               />
             </Field>
 

@@ -18,7 +18,10 @@ import {
   WorkHistoryType,
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { generateEmployeeCode } from './utils/employee-code.util';
+import {
+  assertValidEmployeeCode,
+  generateEmployeeCode,
+} from './utils/employee-code.util';
 import { OffboardingService } from '../offboarding/offboarding.service';
 import type { AuthenticatedUser, TenantScope } from '../../common/interfaces/authenticated-user.interface';
 import { assertWithinScope, tenantWhere } from '../../common/tenant/tenant-scope.util';
@@ -97,6 +100,9 @@ export class EmployeesService {
     }
     if (query.positionId) filters.push({ positionId: query.positionId });
     if (query.supervisorId) filters.push({ supervisorId: query.supervisorId });
+    if (query.hasUser !== undefined) {
+      filters.push({ userId: query.hasUser ? { not: null } : null });
+    }
 
     if (query.q) {
       filters.push({
@@ -474,7 +480,7 @@ export class EmployeesService {
         },
         data: {
           ...(dto.employeeCode !== undefined
-            ? { employeeCode: dto.employeeCode.trim() }
+            ? { employeeCode: assertValidEmployeeCode(dto.employeeCode) }
             : {}),
           ...(dto.title !== undefined
             ? { title: this.optionalTrim(dto.title) }
@@ -1732,16 +1738,7 @@ export class EmployeesService {
     companyId: string,
     startDate: Date,
   ): Promise<string> {
-    const company = await tx.company.findUnique({
-      where: { id: companyId },
-      select: { code: true },
-    });
-
-    return generateEmployeeCode(tx, {
-      companyId,
-      companyCode: company?.code ?? null,
-      startDate,
-    });
+    return generateEmployeeCode(tx, { companyId, startDate });
   }
 
   /**
@@ -1820,11 +1817,12 @@ export class EmployeesService {
     targetCompanyId: string,
     targetBranchId?: string | null,
   ) {
-    if (dto.employeeCode) {
-      const employeeCode = dto.employeeCode.trim();
+    if (dto.employeeCode !== undefined) {
+      const employeeCode = assertValidEmployeeCode(dto.employeeCode);
 
       const duplicatedCode = await this.prisma.employee.findFirst({
         where: {
+          companyId: targetCompanyId,
           employeeCode,
           id: {
             not: id,

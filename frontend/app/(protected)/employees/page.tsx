@@ -984,7 +984,10 @@ export default function EmployeesPage() {
         <div className="space-y-5">
           <FormSection title="ข้อมูลระบุตัวตน">
             <FieldGrid columns={3}>
-              <Field label="รหัสพนักงาน" hint="ระบบจะออกรหัสให้เมื่อบันทึก">
+              <Field
+                label="รหัสพนักงาน"
+                hint="ระบบออกให้เมื่อบันทึก เป็นตัวเลข ปี พ.ศ. 2 หลัก + ลำดับ 4 หลัก เช่น 690055"
+              >
                 <TextInput value="" placeholder="ออกอัตโนมัติ" disabled />
               </Field>
 

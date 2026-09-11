@@ -49,7 +49,11 @@ import {
   attendanceDepartmentGroupKey,
 } from "@/lib/attendance-session-group";
 import type { OrganizationOption } from "@/types/employee";
-import type { EmployeeListItem, EmployeeListResponse } from "@/types/employee";
+import type { EmployeeListItem } from "@/types/employee";
+import {
+  EmployeePicker,
+  type PickerEmployee,
+} from "@/components/common/employee-picker";
 import type {
   PaginationMeta,
   RoleListItem,
@@ -153,8 +157,9 @@ export function UsersPanel({
 }) {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [roles, setRoles] = useState<RoleListItem[]>([]);
-  const [employeeOptions, setEmployeeOptions] = useState<EmployeeListItem[]>(
-    [],
+  /** พนักงานที่เลือกในฟอร์มเปิดบัญชี — เก็บทั้งก้อนไว้โชว์รหัส/เติมอีเมล */
+  const [createEmployee, setCreateEmployee] = useState<PickerEmployee | null>(
+    null,
   );
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [userSummary, setUserSummary] = useState<UserListSummary | null>(null);
@@ -226,17 +231,6 @@ export function UsersPanel({
     () => roles.filter((role) => role.isActive),
     [roles],
   );
-  const unlinkedEmployees = useMemo(
-    () => employeeOptions.filter((employee) => !employee.userId),
-    [employeeOptions],
-  );
-  const linkableEmployees = useMemo(() => {
-    return employeeOptions.filter((employee) => {
-      if (!linkModalUser) return !employee.userId;
-      return !employee.userId || employee.userId === linkModalUser.id;
-    });
-  }, [employeeOptions, linkModalUser]);
-
   const totalUsers = userSummary?.total ?? meta?.total ?? 0;
 
   /**
@@ -321,19 +315,8 @@ export function UsersPanel({
     }
   }
 
-  async function loadEmployeeOptions() {
-    try {
-      const result = await apiFetch<EmployeeListResponse>(
-        "/employees?page=1&pageSize=100",
-      );
-      setEmployeeOptions(result.items);
-    } catch (loadError) {
-      toast.error(getErrorMessage(loadError, "โหลดรายชื่อพนักงานไม่สำเร็จ"));
-    }
-  }
-
   async function refreshAll() {
-    await Promise.all([loadUsers(), loadRoles(), loadEmployeeOptions()]);
+    await Promise.all([loadUsers(), loadRoles()]);
   }
 
   useEffect(() => {
@@ -343,7 +326,6 @@ export function UsersPanel({
 
   useEffect(() => {
     loadRoles();
-    loadEmployeeOptions();
     loadOrgOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -424,7 +406,8 @@ export function UsersPanel({
       );
       setCreateOpen(false);
       setCreateForm(defaultCreateForm);
-      await Promise.all([loadUsers(), loadEmployeeOptions()]);
+      setCreateEmployee(null);
+      await loadUsers();
     } catch (saveError) {
       toast.error(getErrorMessage(saveError, "เพิ่มผู้ใช้ไม่สำเร็จ"));
     } finally {
@@ -470,7 +453,7 @@ export function UsersPanel({
       toast.success("ผูกผู้ใช้กับพนักงานสำเร็จ");
       setLinkModalUser(null);
       setSelectedEmployeeId("");
-      await Promise.all([loadUsers(), loadEmployeeOptions()]);
+      await loadUsers();
     } catch (saveError) {
       toast.error(getErrorMessage(saveError, "ผูกพนักงานไม่สำเร็จ"));
     } finally {
@@ -508,7 +491,7 @@ export function UsersPanel({
       toast.success("อัปเดตอีเมลและยกเลิก session เดิมของผู้ใช้นี้แล้ว");
       setEmailModalUser(null);
       setEmailForm(defaultUpdateEmailForm);
-      await Promise.all([loadUsers(), loadEmployeeOptions()]);
+      await loadUsers();
     } catch (saveError) {
       toast.error(getErrorMessage(saveError, "อัปเดตอีเมลไม่สำเร็จ"));
     } finally {
@@ -566,7 +549,7 @@ export function UsersPanel({
           body: JSON.stringify({}),
         });
         toast.success("ยกเลิกการผูกพนักงานสำเร็จ");
-        await Promise.all([loadUsers(), loadEmployeeOptions()]);
+        await loadUsers();
       },
     });
   }
@@ -580,13 +563,14 @@ export function UsersPanel({
       onConfirm: async () => {
         await apiFetch<UserListItem>(`/users/${user.id}`, { method: "DELETE" });
         toast.success("ปิดใช้งานผู้ใช้สำเร็จ");
-        await Promise.all([loadUsers(), loadEmployeeOptions()]);
+        await loadUsers();
       },
     });
   }
 
   function openCreateModal() {
     setCreateForm(defaultCreateForm);
+    setCreateEmployee(null);
     setCreateOpen(true);
   }
   function openRoleModal(user: UserListItem) {
@@ -610,8 +594,11 @@ export function UsersPanel({
     setPasswordForm(defaultResetPasswordForm);
   }
 
-  function handleCreateEmployeeChange(employeeId: string) {
-    const employee = employeeOptions.find((item) => item.id === employeeId);
+  function handleCreateEmployeeChange(
+    employeeId: string,
+    employee: PickerEmployee | null,
+  ) {
+    setCreateEmployee(employee);
     setCreateForm((current) => ({
       ...current,
       employeeId,
@@ -980,25 +967,30 @@ export function UsersPanel({
       {createOpen ? (
         <Modal
           title="เพิ่มผู้ใช้งาน"
-          subtitle="ผูกบัญชีกับพนักงาน หรือสร้างบัญชีผู้ดูแลบริษัทที่ยังไม่มีพนักงาน"
+          subtitle="พนักงานเข้าระบบด้วยรหัสพนักงาน ส่วนบัญชีผู้ดูแลที่ไม่ผูกพนักงานเข้าด้วยอีเมล"
           onClose={() => setCreateOpen(false)}
         >
           <form onSubmit={handleCreateUser}>
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <SelectInput
+                {/*
+                  ค้นหาที่เซิร์ฟเวอร์ กรองเฉพาะคนที่ยังไม่มีบัญชี (hasUser=false)
+                  status="" = ทุกสถานะที่ยังทำงานอยู่ ไม่ใช่แค่ ACTIVE
+                  เพราะพนักงานทดลองงานก็ต้องมีบัญชีเข้าแอปตั้งแต่วันแรก
+                */}
+                <Field
                   label="ผูกกับพนักงาน"
-                  value={createForm.employeeId}
-                  onChange={handleCreateEmployeeChange}
+                  hint="เว้นว่าง = สร้างบัญชีผู้ดูแลบริษัทที่ไม่ผูกพนักงาน"
                 >
-                  <option value="">ไม่ผูกพนักงาน — บัญชีผู้ดูแลบริษัท</option>
-                  {unlinkedEmployees.map((employee) => (
-                    <option key={employee.id} value={employee.id}>
-                      {employee.employeeCode} -{" "}
-                      {getEmployeeDisplayName(employee)}
-                    </option>
-                  ))}
-                </SelectInput>
+                  <EmployeePicker
+                    value={createForm.employeeId}
+                    onChange={handleCreateEmployeeChange}
+                    status=""
+                    extraParams={{ hasUser: "false" }}
+                    placeholder="พิมพ์รหัสหรือชื่อพนักงาน"
+                    emptyText="ไม่พบพนักงานที่ยังไม่มีบัญชีตรงกับที่ค้นหา"
+                  />
+                </Field>
 
                 {/*
                   บัญชีที่ไม่ผูกพนักงาน = ผู้ดูแลของบริษัทนี้เอง
@@ -1019,13 +1011,39 @@ export function UsersPanel({
                   />
                 )}
 
+                {/*
+                  ผูกพนักงาน = เข้าระบบด้วยรหัสพนักงาน โชว์รหัสให้เห็นว่าจะใช้อะไรล็อกอิน
+                  อีเมลกลายเป็นของแถม ไม่กรอกระบบตั้งอีเมลภายในให้เอง
+                */}
+                {createEmployee ? (
+                  <Field
+                    label="รหัสพนักงาน (ใช้เข้าสู่ระบบ)"
+                    hint="พนักงานใช้รหัสนี้คู่กับรหัสผ่านเริ่มต้นเพื่อเข้าเว็บและแอป"
+                  >
+                    <TextInput
+                      value={createEmployee.employeeCode ?? ""}
+                      readOnly
+                      className="bg-slate-50 font-mono"
+                    />
+                  </Field>
+                ) : null}
+
                 <FormInput
-                  label="อีเมลเข้าสู่ระบบ"
+                  label={
+                    createEmployee
+                      ? "อีเมล (ไม่บังคับ)"
+                      : "อีเมลเข้าสู่ระบบ"
+                  }
                   value={createForm.email}
                   onChange={(value) =>
                     setCreateForm((current) => ({ ...current, email: value }))
                   }
                   placeholder="email@company.com"
+                  hint={
+                    createEmployee
+                      ? "ถ้าเว้นว่าง ระบบตั้งอีเมลภายในให้อัตโนมัติ"
+                      : undefined
+                  }
                 />
 
                 <FormInput
@@ -1087,18 +1105,16 @@ export function UsersPanel({
           onClose={() => setLinkModalUser(null)}
         >
           <div className="space-y-5">
-            <SelectInput
-              label="เลือกพนักงาน"
-              value={selectedEmployeeId}
-              onChange={setSelectedEmployeeId}
-            >
-              <option value="">เลือกพนักงาน</option>
-              {linkableEmployees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.employeeCode} - {getEmployeeDisplayName(employee)}
-                </option>
-              ))}
-            </SelectInput>
+            <Field label="เลือกพนักงาน">
+              <EmployeePicker
+                value={selectedEmployeeId}
+                onChange={(id) => setSelectedEmployeeId(id)}
+                status=""
+                extraParams={{ hasUser: "false" }}
+                placeholder="พิมพ์รหัสหรือชื่อพนักงาน"
+                emptyText="ไม่พบพนักงานที่ยังไม่มีบัญชีตรงกับที่ค้นหา"
+              />
+            </Field>
           </div>
           <ModalFooter
             submitting={submitting}
@@ -1208,7 +1224,7 @@ export function UsersPanel({
                   newPassword: value,
                 }))
               }
-              placeholder="อย่างน้อย 12 ตัวอักษร"
+              placeholder="อย่างน้อย 10 ตัวอักษร"
             />
             <FormInput
               label="ยืนยันรหัสผ่านใหม่"
@@ -1510,28 +1526,6 @@ function FormInput({
   );
 }
 
-function SelectInput({
-  label,
-  value,
-  onChange,
-  children,
-  hint,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-  hint?: string;
-}) {
-  return (
-    <Field label={label} hint={hint}>
-      <Select value={value} onChange={(event) => onChange(event.target.value)}>
-        {children}
-      </Select>
-    </Field>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
@@ -1583,11 +1577,10 @@ function getPasswordRules(password: string, user: UserListItem) {
     .filter((part): part is string => Boolean(part && part.length >= 4));
 
   return [
-    { label: "อย่างน้อย 12 ตัวอักษร", valid: password.length >= 12 },
+    { label: "อย่างน้อย 10 ตัวอักษร", valid: password.length >= 10 },
     { label: "ตัวพิมพ์เล็ก", valid: /[a-z]/.test(password) },
     { label: "ตัวพิมพ์ใหญ่", valid: /[A-Z]/.test(password) },
     { label: "ตัวเลข", valid: /\d/.test(password) },
-    { label: "อักขระพิเศษ", valid: /[^A-Za-z0-9]/.test(password) },
     {
       label: "ไม่ใช้คำเดาง่ายหรือข้อมูลส่วนตัว",
       valid: !forbiddenParts.some((part) => lowerPassword.includes(part)),

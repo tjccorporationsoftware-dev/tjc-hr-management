@@ -112,7 +112,7 @@ export function personNameOf(
   );
 }
 
-/** อายุงานนับเป็นปี/เดือน แบบที่ HR ใช้คุยกันจริง ไม่ใช่จำนวนวัน */
+/** อายุงานนับเป็นปี/เดือน/วัน นับแบบปฏิทิน (วันไม่พอยืมจากเดือนก่อนหน้า) */
 export function tenureText(startDate?: string | null) {
   if (!startDate) return dash;
 
@@ -122,18 +122,28 @@ export function tenureText(startDate?: string | null) {
   const now = new Date();
   let years = now.getFullYear() - start.getFullYear();
   let months = now.getMonth() - start.getMonth();
+  let days = now.getDate() - start.getDate();
 
-  if (now.getDate() < start.getDate()) months -= 1;
+  if (days < 0) {
+    months -= 1;
+    // จำนวนวันของเดือนก่อนหน้าเดือนปัจจุบัน
+    days += new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  }
 
   if (months < 0) {
     years -= 1;
     months += 12;
   }
 
-  if (years <= 0 && months <= 0) return "น้อยกว่า 1 เดือน";
-  if (years <= 0) return `${months} เดือน`;
-  if (months <= 0) return `${years} ปี`;
-  return `${years} ปี ${months} เดือน`;
+  if (years < 0) return dash;
+
+  const parts = [
+    years > 0 ? `${years} ปี` : null,
+    months > 0 ? `${months} เดือน` : null,
+    days > 0 ? `${days} วัน` : null,
+  ].filter(Boolean);
+
+  return parts.length ? parts.join(" ") : "0 วัน";
 }
 
 export function onOffText(value?: boolean | null) {

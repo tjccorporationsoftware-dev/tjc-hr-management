@@ -284,6 +284,8 @@ export type HireApplicantResult = {
   account?: {
     created: boolean;
     userId?: string;
+    /** สิ่งที่พนักงานพิมพ์ในช่องแรกของหน้าล็อกอิน (= รหัสพนักงาน) */
+    loginId?: string;
     email?: string;
     /** รหัสเริ่มต้น ส่งกลับมาครั้งเดียวเพื่อให้ HR ส่งต่อ */
     temporaryPassword?: string;

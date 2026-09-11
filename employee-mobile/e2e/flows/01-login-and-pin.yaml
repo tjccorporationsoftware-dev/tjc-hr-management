@@ -16,7 +16,7 @@ tags:
 - assertVisible: 'เข้าสู่ระบบ'
 
 - tapOn:
-    id: 'login-email'
+    id: 'login-username'
 - inputText: ${EMAIL}
 
 - tapOn:

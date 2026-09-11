@@ -26,6 +26,7 @@ export type PickerEmployee = {
   firstName?: string | null;
   lastName?: string | null;
   displayName?: string | null;
+  email?: string | null;
   position?: string | null;
   startDate?: string | null;
   status?: string | null;
@@ -79,6 +80,11 @@ export function EmployeePicker({
   excludeIds,
   /** สถานะพนักงานที่ยอมให้เลือก ไม่ระบุ = ทุกสถานะ */
   status = "ACTIVE",
+  /**
+   * พารามิเตอร์เพิ่มเติมที่ส่งไป /employees ตอนค้นหา เช่น { hasUser: "false" }
+   * สำหรับหน้าที่ต้องกรองด้วยเงื่อนไขที่ตัวเลือกด้านบนไม่มี (โหมด options ไม่ใช้)
+   */
+  extraParams,
   placeholder = "ค้นหาชื่อหรือรหัสพนักงาน",
   disabled,
   emptyText = "ไม่พบพนักงานที่ตรงกับที่ค้นหา",
@@ -89,6 +95,7 @@ export function EmployeePicker({
   options?: PickerEmployee[];
   excludeIds?: string[];
   status?: string;
+  extraParams?: Record<string, string>;
   placeholder?: string;
   disabled?: boolean;
   emptyText?: string;
@@ -128,6 +135,9 @@ export function EmployeePicker({
     });
   }
 
+  // เทียบเป็นสตริง — ผู้เรียกมักส่ง object literal มาใหม่ทุก render ถ้าใส่ตรง ๆ ใน deps จะยิงไม่หยุด
+  const extraParamsKey = JSON.stringify(extraParams ?? {});
+
   // ค้นหาที่เซิร์ฟเวอร์ หน่วง 300ms กันยิงทุกตัวอักษร (โหมดลิสต์ในหน้าไม่ต้องยิง)
   useEffect(() => {
     if (!open || options) return;
@@ -141,6 +151,11 @@ export function EmployeePicker({
           if (term.trim()) params.set("q", term.trim());
           if (companyId) params.set("companyId", companyId);
           if (status) params.set("status", status);
+          for (const [key, val] of Object.entries(
+            JSON.parse(extraParamsKey) as Record<string, string>,
+          )) {
+            params.set(key, val);
+          }
 
           const response = await apiFetch<EmployeeListShape>(
             `/employees?${params.toString()}`,
@@ -160,7 +175,7 @@ export function EmployeePicker({
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [open, term, companyId, status, options]);
+  }, [open, term, companyId, status, options, extraParamsKey]);
 
   // เลื่อนจอ/ปรับขนาดจอ = ขยับกล่องตามปุ่ม · คลิกนอกหรือ Esc = ปิด
   useEffect(() => {

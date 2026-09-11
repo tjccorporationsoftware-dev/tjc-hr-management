@@ -45,9 +45,9 @@ import { useVisibleStatusBarStyle } from '@/theme/use-status-bar-style';
  * จะเข้าใจว่าเป็นรหัสของแอปอย่างเดียว
  */
 
-/* ต้องตรงกับ ChangeOwnPasswordDto ฝั่ง backend (MinLength 12)
+/* ต้องตรงกับ ChangeOwnPasswordDto ฝั่ง backend (MinLength 10)
    ถ้าตั้งต่ำกว่า ผู้ใช้จะกรอกผ่านหน้าจอแล้วโดน server ตีกลับ งงว่าผิดตรงไหน */
-const MIN_LENGTH = 12;
+const MIN_LENGTH = 10;
 
 export default function ChangePasswordScreen() {
   const { gutter } = useResponsive();

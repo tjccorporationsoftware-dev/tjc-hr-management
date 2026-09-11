@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -7,6 +7,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
   Min,
   ValidateNested,
@@ -18,6 +19,11 @@ import {
   MaritalStatus,
 } from '../../../generated/prisma/client';
 import { EmailField } from '../../../common/decorators/email-field.decorator';
+import {
+  EMPLOYEE_CODE_MAX_LENGTH,
+  EMPLOYEE_CODE_PATTERN,
+  EMPLOYEE_CODE_RULE_MESSAGE,
+} from '../utils/employee-code.util';
 
 export class UpdateEmployeeProfileDto {
   @IsOptional()
@@ -226,9 +232,14 @@ export class UpdateEmployeeProfileDto {
 }
 
 export class UpdateEmployeeDto {
+  /** กติการหัสพนักงาน (อักษรอังกฤษ/ตัวเลขเท่านั้น) ดู employee-code.util.ts */
   @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
-  @MaxLength(50)
+  @MaxLength(EMPLOYEE_CODE_MAX_LENGTH)
+  @Matches(EMPLOYEE_CODE_PATTERN, { message: EMPLOYEE_CODE_RULE_MESSAGE })
   employeeCode?: string;
 
   @IsOptional()

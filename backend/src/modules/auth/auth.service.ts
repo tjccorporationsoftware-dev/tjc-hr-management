@@ -14,6 +14,9 @@ import { LoginDto } from './dto/login.dto';
 import { VerifyTwoFactorDto } from './dto/verify-two-factor.dto';
 import { ChangeOwnPasswordDto } from './dto/change-password.dto';
 
+/** ข้อความเดียวไม่ว่าจะหาบัญชีไม่เจอหรือรหัสผ่านผิด — ไม่บอกใบ้ว่าอันไหนผิด */
+const LOGIN_FAILED_MESSAGE = 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง';
+
 /**
  * ข้อมูลเครื่องที่ผูกกับ session — ใช้เฉพาะฝั่ง Mobile (BE-MOB-001)
  * ฝั่งเว็บไม่ส่งค่านี้ session จึงยังเป็น sessionType = WEB เหมือนเดิม
@@ -152,12 +155,12 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto, context: RequestContext) {
-    const email = dto.email.trim().toLowerCase();
+    const identifier = (dto.username ?? dto.email ?? '').trim();
 
-    const user = await this.findUserForAuthByEmail(email);
+    const user = await this.findUserForAuthByIdentifier(identifier);
 
     if (!user || user.deletedAt || user.status !== 'ACTIVE') {
-      throw new UnauthorizedException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      throw new UnauthorizedException(LOGIN_FAILED_MESSAGE);
     }
 
     await this.ensureUserIsNotLocked(user, context);
@@ -169,7 +172,7 @@ export class AuthService {
 
     if (!passwordMatched) {
       await this.handleFailedPasswordLogin(user, context);
-      throw new UnauthorizedException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      throw new UnauthorizedException(LOGIN_FAILED_MESSAGE);
     }
 
     await this.clearLoginProtection(user.id);
@@ -520,6 +523,41 @@ export class AuthService {
     });
 
     return { revoked: true, revokedCount: result.count };
+  }
+
+  /**
+   * หาบัญชีจากสิ่งที่พิมพ์ในช่องแรกของหน้าล็อกอิน
+   *
+   * มี @ = อีเมล (ผู้ดูแลระบบ / บัญชีที่ไม่ผูกพนักงาน)
+   * ไม่มี @ = รหัสพนักงาน → ไล่ไปหา user ที่ผูกกับพนักงานคนนั้น
+   *
+   * รหัสพนักงานซ้ำได้ข้ามบริษัท ถ้าเจอบัญชีมากกว่าหนึ่ง ไม่เดาให้ — บอกให้ใช้อีเมลแทน
+   * ส่วนกรณีหาไม่เจอ ตอบ null ให้ผู้เรียกโยน error กลาง ๆ เหมือนรหัสผ่านผิด
+   * จะได้ไม่เป็นช่องให้ไล่เดาว่ารหัสพนักงานไหนมีบัญชี
+   */
+  private async findUserForAuthByIdentifier(identifier: string) {
+    if (!identifier) return null;
+    if (identifier.includes('@')) {
+      return this.findUserForAuthByEmail(identifier);
+    }
+
+    const linked = await this.prisma.employee.findMany({
+      where: {
+        employeeCode: identifier,
+        deletedAt: null,
+        userId: { not: null },
+      },
+      select: { userId: true },
+    });
+
+    if (linked.length > 1) {
+      throw new BadRequestException(
+        'รหัสพนักงานนี้มีอยู่ในหลายบริษัท กรุณาเข้าสู่ระบบด้วยอีเมลแทน',
+      );
+    }
+
+    const userId = linked[0]?.userId;
+    return userId ? this.findUserForAuthById(userId) : null;
   }
 
   private async findUserForAuthByEmail(email: string) {
@@ -1204,15 +1242,12 @@ export class AuthService {
     }
 
     const rules = [
-      { valid: password.length >= 12, message: 'ต้องมีอย่างน้อย 12 ตัวอักษร' },
+      { valid: password.length >= 10, message: 'ต้องมีอย่างน้อย 10 ตัวอักษร' },
       { valid: password.length <= 128, message: 'ต้องไม่เกิน 128 ตัวอักษร' },
       { valid: /[a-z]/.test(password), message: 'ต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว' },
       { valid: /[A-Z]/.test(password), message: 'ต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว' },
       { valid: /\d/.test(password), message: 'ต้องมีตัวเลขอย่างน้อย 1 ตัว' },
-      {
-        valid: /[^A-Za-z0-9]/.test(password),
-        message: 'ต้องมีอักขระพิเศษอย่างน้อย 1 ตัว',
-      },
+      // ไม่บังคับอักขระพิเศษ (ลูกค้าขอ 2569-09-11) — พนักงานหน้างานพิมพ์บนมือถือลำบาก
     ];
 
     const failed = rules.find((rule) => !rule.valid);

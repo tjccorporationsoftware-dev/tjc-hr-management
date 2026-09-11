@@ -51,7 +51,7 @@ export class MobileAuthAdapter {
 
   async login(dto: MobileLoginDto, client: MobileClientContext) {
     const result = await this.authService.login(
-      { email: dto.email, password: dto.password },
+      { username: dto.username, email: dto.email, password: dto.password },
       this.toRequestContext(client, dto.installation),
     );
 

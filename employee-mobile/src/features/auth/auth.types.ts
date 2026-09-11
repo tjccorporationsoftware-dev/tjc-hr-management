@@ -56,6 +56,7 @@ export const loginResultSchema = z.discriminatedUnion('requiresTwoFactor', [
 export type LoginResult = z.infer<typeof loginResultSchema>;
 
 export interface LoginCredentials {
-  email: string;
+  /** รหัสพนักงาน หรืออีเมลสำหรับบัญชีที่ไม่มีรหัสพนักงาน */
+  username: string;
   password: string;
 }
