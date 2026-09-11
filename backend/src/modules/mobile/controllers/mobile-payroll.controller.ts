@@ -28,7 +28,11 @@ export class MobilePayrollController {
   constructor(private readonly salarySlipService: EssSalarySlipService) {}
 
   /**
-   * รายการสลิปล่าสุด
+   * รายการสลิปทุกงวดที่มี
+   *
+   * ต้องส่ง `allPeriods` เพราะค่าเริ่มต้นของ service คืนงวดเดียว (ตามจอเว็บที่
+   * มี dropdown เลือกงวดแล้วยิงถามใหม่ทีละงวด) ส่วนมือถือโชว์ทุกงวดในจอเดียว
+   * ถ้าไม่ส่ง ตัวเลือกงวดบนแอปจะมีแค่งวดล่าสุดงวดเดียวเสมอ
    *
    * ตั้งใจไม่รับพารามิเตอร์ปี เพราะ EssSalarySlipQueryDto ไม่มีตัวกรองปี
    * การเปิดรับ `year` แล้วเงียบ ๆ ไม่กรองให้ แย่กว่าการไม่มีตัวเลือกเลย
@@ -37,10 +41,11 @@ export class MobilePayrollController {
   @Get('slips')
   @Auth('ESS_ACCESS', 'PAYROLL_SLIP_VIEW')
   async listSlips(@CurrentUser() user: AuthenticatedUser) {
-    const result = await this.salarySlipService.findMySalarySlips(user, {
-      page: 1,
-      pageSize: 24,
-    } as never);
+    const result = await this.salarySlipService.findMySalarySlips(
+      user,
+      { page: 1, pageSize: 24 } as never,
+      { allPeriods: true },
+    );
 
     const items = ((result.data ?? []) as Record<string, unknown>[]).map(
       (item) => toMobilePayslipListItem(item as never),

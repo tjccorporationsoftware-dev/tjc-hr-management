@@ -292,9 +292,20 @@ export class EssSalarySlipService {
     return null;
   }
 
+  /**
+   * รายการสลิปของตัวเอง
+   *
+   * ค่าเริ่มต้นคืน **งวดเดียว** (งวดที่เลือกหรือล่าสุด) เพราะจอเว็บให้ผู้ใช้เลือก
+   * งวดจาก dropdown แล้วยิงถามใหม่ทีละงวด รายการจึงเป็นของงวดนั้นล้วน
+   *
+   * `options.allPeriods` ใช้กับมือถือที่แสดงทุกงวดในจอเดียวโดยไม่มี dropdown —
+   * ถ้าไม่มีทางนี้ ตัวเลือกงวดบนมือถือจะมีแค่งวดเดียวเสมอไม่ว่าจะทำเงินเดือน
+   * ไปแล้วกี่งวด เพราะรายการถูกตีกรอบด้วย runId ตั้งแต่ในนี้แล้ว
+   */
   async findMySalarySlips(
     currentUser: CurrentUserLike,
     query: EssSalarySlipQueryDto,
+    options: { allPeriods?: boolean } = {},
   ) {
     const actorId = this.getActorId(currentUser);
 
@@ -373,9 +384,9 @@ export class EssSalarySlipService {
       };
     }
 
-    const where: Prisma.PayrollItemWhereInput = {
-      AND: [baseWhere, { runId: selectedRunId }],
-    };
+    const where: Prisma.PayrollItemWhereInput = options.allPeriods
+      ? { AND: [baseWhere] }
+      : { AND: [baseWhere, { runId: selectedRunId }] };
 
     if (query.q?.trim()) {
       const q = query.q.trim();
