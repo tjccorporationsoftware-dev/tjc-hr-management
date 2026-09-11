@@ -8,6 +8,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { ApprovalMatrixResolverService } from '../approval-workflow/services/approval-matrix-resolver.service';
 import {
   canActOnApprovalStep,
+  canApproveOwnRequest,
   isOwnRequest,
   type ApprovalRequestOwner,
   loadActorRoleCodes,
@@ -687,6 +688,15 @@ export class LeaveRequestsService {
       isRetroactive: leaveTiming.isRetroactive,
     });
 
+    await this.assertNoOverlappingLeave({
+      employeeId: employee.id,
+      startDate,
+      endDate,
+      dayType,
+      startTime: leaveTiming.startTime,
+      endTime: leaveTiming.endTime,
+    });
+
     const requestNo = await this.generateRequestNo();
 
     const leaveRequest = await this.prisma.leaveRequest.create({
@@ -804,6 +814,16 @@ export class LeaveRequestsService {
       isRetroactive: leaveTiming.isRetroactive,
     });
 
+    await this.assertNoOverlappingLeave({
+      employeeId: current.employeeId,
+      excludeId: id,
+      startDate,
+      endDate,
+      dayType,
+      startTime: leaveTiming.startTime,
+      endTime: leaveTiming.endTime,
+    });
+
     await this.prisma.leaveRequest.update({
       where: { id },
       data: {
@@ -861,6 +881,17 @@ export class LeaveRequestsService {
     if (request.status !== 'DRAFT') {
       throw new BadRequestException('ส่งใบลาได้เฉพาะสถานะร่างเท่านั้น');
     }
+
+    // แบบร่างอาจถูกสร้างไว้ก่อนที่จะมีใบอื่นยื่นทับช่วงเดียวกัน ต้องเช็คซ้ำตอนส่ง
+    await this.assertNoOverlappingLeave({
+      employeeId: request.employeeId,
+      excludeId: id,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      dayType: request.dayType,
+      startTime: request.startTime,
+      endTime: request.endTime,
+    });
 
     const year = request.startDate.getFullYear();
 
@@ -1024,40 +1055,19 @@ export class LeaveRequestsService {
     /*
      * ห้ามอนุมัติใบลาที่กินเวลาซ้อนกับใบลา APPROVED เดิมของคนเดียวกัน
      * ไม่งั้นโควตาถูกหักซ้ำ และลาไม่รับค่าจ้างจะถูกหักเงินซ้ำ
-     * (ครึ่งเช้า+ครึ่งบ่าย หรือรายชั่วโมงคนละช่วง เป็นเคสถูกกติกา ไม่ติดด่านนี้)
+     * (ตอนยื่นกันไว้ชั้นหนึ่งแล้ว แต่ใบที่ยื่นก่อนกติกานี้ยังค้างอยู่ได้)
      */
-    const overlappingApproved = await this.prisma.leaveRequest.findMany({
-      where: {
-        id: { not: id },
-        employeeId: request.employeeId,
-        status: 'APPROVED',
-        deletedAt: null,
-        startDate: { lte: request.endDate },
-        endDate: { gte: request.startDate },
-      },
-      select: {
-        requestNo: true,
-        dayType: true,
-        startTime: true,
-        endTime: true,
-      },
+    await this.assertNoOverlappingLeave({
+      employeeId: request.employeeId,
+      excludeId: id,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      dayType: request.dayType,
+      startTime: request.startTime,
+      endTime: request.endTime,
+      statuses: ['APPROVED'],
+      action: 'อนุมัติ',
     });
-    const conflict = overlappingApproved.find((other) =>
-      leaveSlicesConflict(
-        {
-          dayType: request.dayType,
-          startTime: request.startTime,
-          endTime: request.endTime,
-        },
-        other,
-      ),
-    );
-    if (conflict) {
-      throw new BadRequestException(
-        `ช่วงวันที่นี้มีใบลาที่อนุมัติแล้วอยู่ (${conflict.requestNo ?? 'ไม่มีเลขที่'}) ` +
-          'ต้องยกเลิกใบเดิมก่อน จึงจะอนุมัติใบนี้ได้',
-      );
-    }
 
     const totalDays = Number(request.totalDays);
     const shouldDeductQuota = this.shouldDeductLeaveQuota(request.leaveType);
@@ -1942,6 +1952,67 @@ export class LeaveRequestsService {
     }
   }
 
+  /**
+   * ห้ามยื่น/อนุมัติใบลาที่กินเวลาซ้อนกับใบลาอื่นของคนเดียวกัน
+   *
+   * ค่าเริ่มต้นเทียบกับใบที่ "ยื่นแล้ว" (รออนุมัติ + อนุมัติแล้ว) — ใบที่ยังไม่อนุมัติ
+   * ก็จองช่วงเวลานั้นไว้แล้ว ถ้าปล่อยให้ยื่นทับกัน หัวหน้าต้องมานั่งไล่ว่าใบไหนตัวจริง
+   * ส่วนแบบร่างไม่นับ เพราะยังไม่ได้ยื่น และจะถูกกันอีกทีตอนกดส่ง
+   *
+   * ครึ่งเช้า+ครึ่งบ่าย หรือรายชั่วโมงคนละช่วง เป็นเคสถูกกติกา ไม่ติดด่านนี้
+   * (ดู leaveSlicesConflict)
+   */
+  private async assertNoOverlappingLeave(params: {
+    employeeId: string;
+    excludeId?: string;
+    startDate: Date;
+    endDate: Date;
+    dayType: string | null | undefined;
+    startTime?: string | null;
+    endTime?: string | null;
+    statuses?: Array<'SUBMITTED' | 'APPROVED'>;
+    action?: string;
+  }) {
+    const statuses = params.statuses ?? ['SUBMITTED', 'APPROVED'];
+
+    const others = await this.prisma.leaveRequest.findMany({
+      where: {
+        ...(params.excludeId ? { id: { not: params.excludeId } } : {}),
+        employeeId: params.employeeId,
+        status: { in: statuses },
+        deletedAt: null,
+        startDate: { lte: params.endDate },
+        endDate: { gte: params.startDate },
+      },
+      select: {
+        requestNo: true,
+        status: true,
+        dayType: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
+    const conflict = others.find((other) =>
+      leaveSlicesConflict(
+        {
+          dayType: params.dayType,
+          startTime: params.startTime,
+          endTime: params.endTime,
+        },
+        other,
+      ),
+    );
+    if (!conflict) return;
+
+    const statusLabel =
+      conflict.status === 'APPROVED' ? 'อนุมัติแล้ว' : 'รออนุมัติ';
+    throw new BadRequestException(
+      `ช่วงวันที่นี้มีใบลาอยู่แล้ว (${conflict.requestNo ?? 'ไม่มีเลขที่'} · ${statusLabel}) ` +
+        `ต้องยกเลิกใบเดิมก่อน จึงจะ${params.action ?? 'ยื่น'}ใบนี้ได้`,
+    );
+  }
+
   private async ensureLeaveTypeIsValid(companyId: string, leaveTypeId: string) {
     const leaveType = await this.prisma.leaveType.findFirst({
       where: {
@@ -2230,7 +2301,13 @@ export class LeaveRequestsService {
      * หัวหน้างานและเจ้าหน้าที่ HR ก็เป็นลูกจ้างที่ยื่นใบลาเหมือนกัน
      * และมักถูกผูกเป็นผู้อนุมัติของสายงานตัวเองด้วย
      */
-    if (isOwnRequest(owner, actorId, actorEmployee?.id ?? null)) {
+    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
+
+    /* ฝ่ายบุคคลอนุมัติของตัวเองได้ — นิยามเดียวกับ canActOnApprovalStep */
+    if (
+      isOwnRequest(owner, actorId, actorEmployee?.id ?? null) &&
+      !canApproveOwnRequest(actorRoleCodes)
+    ) {
       throw new BadRequestException(
         'ไม่สามารถอนุมัติหรือไม่อนุมัติใบลาของตนเองได้',
       );
@@ -2253,8 +2330,6 @@ export class LeaveRequestsService {
     ) {
       return;
     }
-
-    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
 
     // ผู้อนุมัติตัวจริงไม่อยู่ ให้คนที่รับมอบอำนาจกดแทนได้
     const delegations = await loadActiveDelegations(

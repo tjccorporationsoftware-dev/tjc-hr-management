@@ -3,6 +3,7 @@ import { Prisma } from '../../../generated/prisma/client';
 import { ApprovalMatrixResolverService } from '../../approval-workflow/services/approval-matrix-resolver.service';
 import {
   canActOnApprovalStep,
+  canApproveOwnRequest,
   isOwnRequest,
   type ApprovalRequestOwner,
   loadActorRoleCodes,
@@ -141,7 +142,13 @@ export class OvertimeApprovalService {
      * หัวหน้างานที่มีสิทธิ์อนุมัติ OT ก็ทำ OT เองได้ และมักถูกผูกเป็นผู้อนุมัติ
      * ของสายงานตัวเอง จึงอนุมัติ OT ตัวเองผ่านได้ทั้งที่เป็นเงินของบริษัท
      */
-    if (isOwnRequest(owner, actorId, actorEmployee?.id ?? null)) {
+    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
+
+    /* ฝ่ายบุคคลอนุมัติของตัวเองได้ — นิยามเดียวกับ canActOnApprovalStep */
+    if (
+      isOwnRequest(owner, actorId, actorEmployee?.id ?? null) &&
+      !canApproveOwnRequest(actorRoleCodes)
+    ) {
       throw new BadRequestException(
         'ไม่สามารถอนุมัติหรือไม่อนุมัติคำขอทำงานล่วงเวลาของตนเองได้',
       );
@@ -150,8 +157,6 @@ export class OvertimeApprovalService {
     if (currentStep.expectedApproverId === actorId) {
       return;
     }
-
-    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
 
     // ผู้อนุมัติตัวจริงไม่อยู่ ให้คนที่รับมอบอำนาจกดแทนได้
     const delegations = await loadActiveDelegations(

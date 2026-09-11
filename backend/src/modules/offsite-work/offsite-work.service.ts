@@ -11,6 +11,7 @@ import {
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { ApprovalMatrixResolverService } from '../approval-workflow/services/approval-matrix-resolver.service';
+import { APPROVAL_HR_ROLE_CODES } from '../approval-workflow/utils/approval-step-authorization.util';
 import { CreateOffsiteWorkRequestDto } from './dto/create-offsite-work-request.dto';
 import { ListOffsiteWorkRequestsQueryDto } from './dto/list-offsite-work-requests-query.dto';
 import { OffsiteWorkActionDto } from './dto/offsite-work-action.dto';
@@ -582,7 +583,7 @@ export class OffsiteWorkService {
     }
 
     const requestEmployee = await this.ensureEmployeeById(request.employeeId);
-    this.ensureActorIsNotRequester(
+    await this.ensureActorIsNotRequester(
       { employeeId: request.employeeId, requesterUserId: requestEmployee.userId ?? null },
       actorId,
       actorEmployee?.id ?? null,
@@ -826,7 +827,7 @@ export class OffsiteWorkService {
     }
 
     const requestEmployee = await this.ensureEmployeeById(request.employeeId);
-    this.ensureActorIsNotRequester(
+    await this.ensureActorIsNotRequester(
       { employeeId: request.employeeId, requesterUserId: requestEmployee.userId ?? null },
       actorId,
       actorEmployee?.id ?? null,
@@ -1218,17 +1219,23 @@ export class OffsiteWorkService {
     });
   }
 
-  private ensureActorIsNotRequester(
+  private async ensureActorIsNotRequester(
     request: { employeeId: string; requesterUserId?: string | null },
     actorId: string,
     actorEmployeeId: string | null,
   ) {
     const requesterUserId = request.requesterUserId ?? null;
-    if (request.employeeId === actorEmployeeId || requesterUserId === actorId) {
-      throw new BadRequestException(
-        'ไม่สามารถอนุมัติหรือไม่อนุมัติคำขอทำงานนอกสถานที่ของตนเองได้',
-      );
-    }
+    const isOwn =
+      request.employeeId === actorEmployeeId || requesterUserId === actorId;
+
+    if (!isOwn) return;
+
+    /* ฝ่ายบุคคลอนุมัติของตัวเองได้ — นิยามเดียวกับ canApproveOwnRequest ของสายกลาง */
+    if (await this.actorHasAnyRole(actorId, APPROVAL_HR_ROLE_CODES)) return;
+
+    throw new BadRequestException(
+      'ไม่สามารถอนุมัติหรือไม่อนุมัติคำขอทำงานนอกสถานที่ของตนเองได้',
+    );
   }
 
   private cancelWaitingSteps(steps: OffsiteApprovalStepSnapshot[]) {

@@ -125,18 +125,22 @@ describe('canActOnApprovalStep · กันอนุมัติงานตั�
     ).toBe(false);
   });
 
-  it('แอดมินระบบก็อนุมัติของตัวเองไม่ได้ — ทางลัดต้องอยู่ใต้กติกานี้', () => {
+  it('ผู้บริหารที่ไม่ใช่ HR อนุมัติของตัวเองไม่ได้ — ทางลัดต้องอยู่ใต้กติกานี้', () => {
     expect(
       canActOnApprovalStep({
-        step,
+        step: { ...step, approverType: 'EXECUTIVE', nameTh: 'ผู้บริหาร' },
         actorId: 'user-1',
-        actorRoleCodes: ['SYSTEM_ADMIN'],
+        actorRoleCodes: ['EXECUTIVE'],
         owner: { requesterUserId: 'user-1' },
       }),
     ).toBe(false);
   });
 
-  it('HR ก็อนุมัติใบลาของตัวเองไม่ได้', () => {
+  /*
+   * ฝ่ายบุคคลเป็นข้อยกเว้นเดียว — บริษัทที่มี HR คนเดียว ใบของ HR คนนั้นจะค้าง
+   * ที่ขั้น HR ตลอดไปถ้าไม่ปล่อย (ดู canApproveOwnRequest)
+   */
+  it('HR อนุมัติใบลาของตัวเองได้', () => {
     expect(
       canActOnApprovalStep({
         step: { ...step, approverType: 'HR_ADMIN', nameTh: 'ฝ่ายบุคคล' },
@@ -144,6 +148,29 @@ describe('canActOnApprovalStep · กันอนุมัติงานตั�
         actorRoleCodes: ['HR_ADMIN'],
         owner: { subjectEmployeeId: 'emp-1' },
         actorEmployeeId: 'emp-1',
+      }),
+    ).toBe(true);
+  });
+
+  it('แอดมินระบบนับเป็น HR ในสายอนุมัติอยู่แล้ว จึงอนุมัติของตัวเองได้เช่นกัน', () => {
+    expect(
+      canActOnApprovalStep({
+        step,
+        actorId: 'user-1',
+        actorRoleCodes: ['SYSTEM_ADMIN'],
+        owner: { requesterUserId: 'user-1' },
+      }),
+    ).toBe(true);
+  });
+
+  it('รับมอบอำนาจมาก็ยังอนุมัติของตัวเองไม่ได้ ถ้าไม่ใช่ HR', () => {
+    expect(
+      canActOnApprovalStep({
+        step: { ...step, expectedApproverId: 'manager-1' },
+        actorId: 'user-1',
+        actorRoleCodes: ['MANAGER'],
+        owner: { requesterUserId: 'user-1' },
+        delegatedFromUserIds: ['manager-1'],
       }),
     ).toBe(false);
   });

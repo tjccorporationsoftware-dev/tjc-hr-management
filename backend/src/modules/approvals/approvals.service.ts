@@ -19,6 +19,7 @@ import { OvertimeRequestsService } from "../overtime/overtime-requests.service";
 import { TimeAdjustRequestsService } from "../time-adjust/time-adjust-requests.service";
 import { OffsiteWorkService } from "../offsite-work/offsite-work.service";
 import { DocumentWorkflowService } from "../document-workflow/document-workflow.service";
+import { canApproveOwnRequest } from "../approval-workflow/utils/approval-step-authorization.util";
 
 import { ListApprovalRequestsQueryDto } from "./dto/list-approval-requests-query.dto";
 import { ApprovalActionDto } from "./dto/approval-action.dto";
@@ -1592,8 +1593,21 @@ export class ApprovalsService {
    *
    * กันสองทางให้ตรงกับ isOwnRequest: พนักงานเจ้าของคำขอ และคนที่กดยื่น
    * (หัวหน้ายื่นแทนลูกน้องก็อนุมัติเองไม่ได้)
+   *
+   * ฝ่ายบุคคลเป็นข้อยกเว้น — ตัวกันตอนกดปล่อยให้ HR อนุมัติของตัวเองได้แล้ว
+   * ถ้าคิวยังซ่อนอยู่ HR จะไม่มีทางไปถึงปุ่มนั้นเลย ต้องเปิดให้ตรงกันทั้งสองชั้น
    */
-  private excludeOwnRequestWhere(approver: ApproverEmployee, actorId: string) {
+  private excludeOwnRequestWhere(
+    approver: ApproverEmployee,
+    actorId: string,
+  ): {
+    NOT?: { employeeId: string };
+    OR?: Array<{ submittedById: null } | { NOT: { submittedById: string } }>;
+  } {
+    if (canApproveOwnRequest(approver.roleCodes ?? [])) {
+      return {};
+    }
+
     return {
       NOT: { employeeId: approver.id },
       // submittedById เป็น null ได้ จึงต้องเขียนเป็น OR ไม่ใช่ not เฉย ๆ

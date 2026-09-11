@@ -119,6 +119,22 @@ export function isOwnRequest(
   );
 }
 
+/**
+ * ฝ่ายบุคคลอนุมัติคำขอของตัวเองได้
+ *
+ * กติกากันอนุมัติงานตัวเองมีไว้กันหัวหน้าที่ถูกผูกเป็นผู้อนุมัติสายงานตัวเอง
+ * แต่กับเจ้าหน้าที่ HR มันกลายเป็นทางตัน — บริษัทที่มี HR คนเดียว ใบลาของ
+ * HR คนนั้นจะค้างที่ขั้น HR ตลอดไปเพราะไม่มีใครอื่นกดได้นอกจากแอดมินระบบ
+ * ซึ่งไม่ใช่คนที่ควรมายุ่งกับใบลา
+ *
+ * ยึดชุดบทบาทเดียวกับที่ใช้ตัดสินขั้น HR_ADMIN จะได้ไม่มีสองนิยามของคำว่า HR
+ */
+export function canApproveOwnRequest(actorRoleCodes: readonly string[]) {
+  return normalize([...actorRoleCodes]).some((code) =>
+    APPROVAL_HR_ROLE_CODES.includes(code),
+  );
+}
+
 export function canActOnApprovalStep(params: {
   step: ApprovalStepAuthorizationInput;
   actorId: string;
@@ -134,13 +150,17 @@ export function canActOnApprovalStep(params: {
   const roleCodes = normalize(params.actorRoleCodes);
 
   /*
-   * กันอนุมัติงานของตัวเอง — ต้องอยู่เหนือทุกเงื่อนไข รวมถึงทางลัดของแอดมิน
+   * กันอนุมัติงานของตัวเอง — อยู่เหนือทุกเงื่อนไข รวมถึงทางลัดของแอดมิน
+   * ยกเว้นฝ่ายบุคคล (ดูเหตุผลที่ canApproveOwnRequest)
    *
    * เดิมมีการกันเฉพาะโมดูลทำงานนอกสถานที่โมดูลเดียว ใบลา/OT/แก้เวลาจึงอนุมัติ
-   * ของตัวเองได้ถ้าถูกผูกเป็นผู้อนุมัติ หรือถือบทบาท HR/ผู้บริหาร/แอดมิน
-   * ซึ่งเป็นเรื่องปกติมากสำหรับหัวหน้าและเจ้าหน้าที่ HR ที่ก็เป็นลูกจ้างเหมือนกัน
+   * ของตัวเองได้ถ้าถูกผูกเป็นผู้อนุมัติ หรือถือบทบาทผู้บริหาร/แอดมิน
+   * ซึ่งเป็นเรื่องปกติมากสำหรับหัวหน้าที่ก็เป็นลูกจ้างเหมือนกัน
    */
-  if (isOwnRequest(params.owner, actorId, params.actorEmployeeId)) {
+  if (
+    isOwnRequest(params.owner, actorId, params.actorEmployeeId) &&
+    !canApproveOwnRequest(roleCodes)
+  ) {
     return false;
   }
 

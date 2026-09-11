@@ -11,6 +11,7 @@ import { TimeAdjustAttendanceApplyService } from "./time-adjust-attendance-apply
 import { ApprovalMatrixResolverService } from "../../approval-workflow/services/approval-matrix-resolver.service";
 import {
   canActOnApprovalStep,
+  canApproveOwnRequest,
   isOwnRequest,
   type ApprovalRequestOwner,
   loadActorRoleCodes,
@@ -788,15 +789,19 @@ export class TimeAdjustApprovalService {
      * กันอนุมัติคำขอแก้เวลาของตัวเอง — ต้องเช็คก่อนทุกทางลัด
      * คำขอนี้เขียนเวลาทำงานจริงลงระบบ อนุมัติเองได้เท่ากับแก้เวลาตัวเองได้อิสระ
      */
-    if (isOwnRequest(owner, actorId, actorEmployee?.id ?? null)) {
+    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
+
+    /* ฝ่ายบุคคลอนุมัติของตัวเองได้ — นิยามเดียวกับ canActOnApprovalStep */
+    if (
+      isOwnRequest(owner, actorId, actorEmployee?.id ?? null) &&
+      !canApproveOwnRequest(actorRoleCodes)
+    ) {
       throw new BadRequestException(
         "ไม่สามารถอนุมัติหรือไม่อนุมัติคำขอแก้เวลาของตนเองได้",
       );
     }
 
     if (currentStep.expectedApproverId === actorId) return;
-
-    const actorRoleCodes = await loadActorRoleCodes(tx, actorId);
 
     // ผู้อนุมัติตัวจริงไม่อยู่ ให้คนที่รับมอบอำนาจกดแทนได้
     const delegations = await loadActiveDelegations(
