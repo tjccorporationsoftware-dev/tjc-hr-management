@@ -88,7 +88,15 @@ async function main() {
 
     const dateKey = parseFileDate(second);
     if (!dateKey || !code) continue;
-    if (cellText(row.getCell(3).value) !== 'วันหยุดพนักงาน') continue;
+    /*
+     * รับทั้ง "วันหยุดพนักงาน" และ "วันหยุดนักขัตฤกษ์"
+     * นักขัตฤกษ์ที่ทั้งบริษัทหยุดพร้อมกัน ให้ลงเป็นวันหยุดบริษัท (holiday_calendars)
+     * แต่ในไฟล์มีบางวันที่มีแค่ไม่กี่คนได้หยุด (เช่น 1 พ.ค. / 3 มิ.ย. ที่คนอื่นมาทำงาน)
+     * วันพวกนั้นถ้าไม่ตั้งเป็นวันหยุดรายคน ระบบจะตีเป็นขาดงาน
+     * ส่วนวันที่เป็นวันหยุดบริษัทอยู่แล้ว จะถูกกรองออกด้วยเงื่อนไข isHoliday ข้างล่าง
+     */
+    const dayStatus = cellText(row.getCell(3).value);
+    if (dayStatus !== 'วันหยุดพนักงาน' && dayStatus !== 'วันหยุดนักขัตฤกษ์') continue;
     if (fromArg && dateKey < fromArg) continue;
     if (toArg && dateKey > toArg) continue;
 

@@ -318,8 +318,15 @@ async function main() {
   const firstDate = dateKeys[0];
   const lastDate = dateKeys[dateKeys.length - 1];
 
-  /* งวดตั้งชื่อตามเดือนของวันสุดท้าย เช่น 2026-09-25 -> 2609 */
-  const periodTag = `${lastDate.slice(2, 4)}${lastDate.slice(5, 7)}`;
+  /*
+   * งวดตั้งชื่อตามเดือนของวันสุดท้าย เช่น 2026-09-25 -> 2609
+   *
+   * ใส่ --tag=xxxx ทับได้ ใช้ตอนที่รหัสงวดชนกับของที่เคยนำเข้าไว้แล้ว
+   * (ไฟล์คนละงวดอาจได้รหัสเดียวกัน เช่น ไฟล์ 26/06-25/07 กับเศษต้นงวด ส.ค.
+   *  ที่มีวันในเดือน ก.ค. ทั้งคู่ได้ 2607 แล้วเลขที่ใบชนกันกลางคัน)
+   */
+  const tagArg = (args.find((arg) => arg.startsWith('--tag=')) || '').slice(6);
+  const periodTag = tagArg || `${lastDate.slice(2, 4)}${lastDate.slice(5, 7)}`;
   const leavePrefix = `LV-IMP-${periodTag}`;
   const otPrefix = `OT-IMP-${periodTag}`;
   const reason = `นำเข้าจากรายงานตารางเวลาการทำงาน ${lastDate.slice(0, 7)}`;
@@ -442,7 +449,14 @@ async function main() {
           row,
           employeeId,
           minutes,
-          workType: isHoliday ? 'HOLIDAY' : 'WORKDAY',
+          /*
+           * ประเภทโอทีต้องดูว่าชั่วโมงมาจากช่องไหนของไฟล์ ไม่ใช่ดูว่าวันนั้นเป็นวันหยุด
+           *
+           * ไฟล์แยกช่อง "โอทีล่วงเวลา(x1.0)" กับ "โอทีล่วงเวลาวันหยุด(x1.5)" ไว้แล้ว
+           * ระบบเดิมจ่ายตามช่องนั้นตรง ๆ เคยตั้งจากสถานะวันหยุด ทำให้ชั่วโมงที่ไฟล์
+           * จ่าย x1.0 ถูกยกไปคิด x1.5 (งวด ม.ค. คนเดียวกันต่างกันหลายร้อยบาท)
+           */
+          workType: overtime.label.includes('x1.5') ? 'HOLIDAY' : 'WORKDAY',
           startMinutes,
           endMinutes: startMinutes + minutes,
           label: overtime.label,

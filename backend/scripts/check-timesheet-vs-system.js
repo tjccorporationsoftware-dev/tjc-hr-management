@@ -24,8 +24,48 @@ const { PrismaClient } = require('../dist/generated/prisma/client.js');
 
 const COMPANY_ID = process.env.IMPORT_COMPANY_ID || 'cmstqxdhf004ttm7wqvoaszwq';
 
-const AFTERNOON_WINDOW_START = '11:30';
-const AFTERNOON_WINDOW_END = '16:59';
+/*
+ * ขอบเขตของแต่ละรอบต้องคิดจาก "กะการทำงาน" ในไฟล์ ให้เหมือนกับตัวนำเข้าเป๊ะ
+ * (attendance-import.dataset.ts → resolveShiftBounds) ไม่งั้นจะรายงานว่าไม่ตรง
+ * ทั้งที่ทั้งสองฝั่งอ่านไฟล์เดียวกันแต่ใช้คนละกติกา
+ *   กะ 08:00-17:00 → เช้าเริ่มรับ 02:00 · บ่ายเปิด 12:00 · บ่ายปิด 16:59
+ *   กะ 07:30-16:30 → เช้าเริ่มรับ 01:30 · บ่ายเปิด 11:30 · บ่ายปิด 16:29
+ */
+const DEFAULT_SHIFT = '08:00 - 17:00';
+const PUNCH_LOOKBACK_MINUTES = 240;
+
+function parseClock(time) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? '').trim());
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+
+  return hour * 60 + minute;
+}
+
+function formatClock(minutes) {
+  const wrapped = ((minutes % 1440) + 1440) % 1440;
+
+  return `${String(Math.floor(wrapped / 60)).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+}
+
+function resolveShiftBounds(shift) {
+  const match = /^(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/.exec(String(shift ?? '').trim());
+  const start = parseClock(match?.[1]) ?? parseClock(DEFAULT_SHIFT.slice(0, 5));
+  const end = parseClock(match?.[2]) ?? parseClock(DEFAULT_SHIFT.slice(-5));
+
+  if (start === null || end === null) {
+    return { earliestMorning: '02:00', afternoonStart: '12:00', afternoonEnd: '16:59' };
+  }
+
+  return {
+    earliestMorning: formatClock(start - 120 - PUNCH_LOOKBACK_MINUTES),
+    afternoonStart: formatClock(start + 240),
+    afternoonEnd: formatClock(end - 1),
+  };
+}
 
 function cellText(value) {
   if (value === null || value === undefined) return '';
@@ -72,28 +112,52 @@ function readFileRows(worksheet) {
     const dateKey = parseFileDate(second);
     if (!dateKey || !code) continue;
 
+    /* คอลัมน์คี่คือช่อง IN คู่คือ OUT — ใช้เลือกรอยกลับจากพักเที่ยงเหมือนตัวนำเข้า */
     const punches = [];
     for (let col = 5; col <= 16; col += 1) {
       const time = cellText(row.getCell(col).value);
-      if (/^\d{1,2}:\d{2}$/.test(time)) punches.push(time.padStart(5, '0'));
+      if (/^\d{1,2}:\d{2}$/.test(time)) {
+        punches.push({ time: time.padStart(5, '0'), isIn: col % 2 === 1 });
+      }
     }
 
-    const middles = punches.slice(1, -1);
-    const afternoonCandidates = middles.filter(
-      (time) => time >= AFTERNOON_WINDOW_START && time <= AFTERNOON_WINDOW_END,
+    const bounds = resolveShiftBounds(cellText(row.getCell(4).value));
+    const firstPunch = punches[0];
+    const hasMorning = Boolean(
+      firstPunch &&
+        firstPunch.time >= bounds.earliestMorning &&
+        firstPunch.time < bounds.afternoonStart,
     );
+    const lastIndex = punches.length - 1;
+    const hasCheckout = lastIndex > 0;
+
+    let afternoonIndex = -1;
+    for (
+      let index = hasCheckout ? lastIndex - 1 : lastIndex;
+      index >= (hasMorning ? 1 : 0);
+      index -= 1
+    ) {
+      const punch = punches[index];
+      if (punch.time < bounds.afternoonStart || punch.time > bounds.afternoonEnd) continue;
+      if (afternoonIndex === -1) afternoonIndex = index;
+      if (punch.isIn) {
+        afternoonIndex = index;
+        break;
+      }
+    }
 
     rows.push({
       code,
       name,
       dateKey,
-      isHoliday: cellText(row.getCell(3).value) === 'วันหยุดพนักงาน',
-      punches,
-      morningIn: punches[0] ?? null,
-      afternoonIn: afternoonCandidates.length
-        ? afternoonCandidates[afternoonCandidates.length - 1]
-        : null,
-      checkOut: punches.length > 1 ? punches[punches.length - 1] : null,
+      /* ระบบนี้ถือว่าทั้งวันหยุดรายคนและวันหยุดนักขัตฤกษ์คือ "ไม่ใช่วันทำงาน" เหมือนกัน */
+      isHoliday: ['วันหยุดพนักงาน', 'วันหยุดนักขัตฤกษ์'].includes(
+        cellText(row.getCell(3).value),
+      ),
+      punches: punches.map((punch) => punch.time),
+      morningIn: hasMorning ? firstPunch.time : null,
+      afternoonIn: afternoonIndex >= 0 ? punches[afternoonIndex].time : null,
+      checkOut: hasCheckout ? punches[lastIndex].time : null,
       lateMinutes: Number(cellText(row.getCell(21).value)) || 0,
       leaveMinutes:
         parseDurationMinutes(cellText(row.getCell(23).value)) +

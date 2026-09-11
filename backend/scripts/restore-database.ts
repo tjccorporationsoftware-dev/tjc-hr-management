@@ -8,6 +8,8 @@ type DatabaseConfig = {
   database: string;
   username: string;
   password: string;
+  host: string;
+  port: string;
 };
 
 function resolveProjectPath(value: string) {
@@ -30,6 +32,8 @@ function parseDatabaseUrl(databaseUrl: string): DatabaseConfig {
     database,
     username: decodeURIComponent(url.username),
     password: decodeURIComponent(url.password),
+    host: url.hostname || "127.0.0.1",
+    port: url.port || "5432",
   };
 }
 
@@ -50,21 +54,38 @@ function getArgValue(name: string) {
   return undefined;
 }
 
-function runDockerPgRestore(params: {
+function runPgRestore(params: {
   containerName: string;
   database: string;
   username: string;
   password: string;
+  host: string;
+  port: string;
   inputFile: string;
 }) {
   return new Promise<void>((resolve, reject) => {
-    const args = [
-      "exec",
-      "-i",
-      "-e",
-      `PGPASSWORD=${params.password}`,
-      params.containerName,
-      "pg_restore",
+    /*
+     * เครื่องที่รันระบบมีสองแบบ ต้องเลือกทางให้ถูก (คู่กับ runPgDump ใน backup.ts)
+     *   - PostgreSQL ใน Docker (เครื่องพัฒนา) → `docker exec` เข้าไปในคอนเทนเนอร์
+     *   - PostgreSQL ติดตั้งบนเครื่อง (เซิร์ฟเวอร์จริง) → เรียก pg_restore ตรง ๆ
+     *
+     * เลือกจาก POSTGRES_CONTAINER_NAME — ตั้งไว้ = ใช้ docker · ปล่อยว่าง = เรียกตรง
+     * ของเดิมมีแต่ทาง docker กู้คืนบนเซิร์ฟเวอร์จึงล้มด้วย `spawn docker ENOENT`
+     *
+     * บน Windows ตัว pg_restore มักไม่อยู่ใน PATH ตั้งที่อยู่เต็มได้ผ่าน PG_RESTORE_PATH
+     * (ถ้าไม่ตั้ง จะเดาจากโฟลเดอร์เดียวกับ PG_DUMP_PATH ที่ backup ใช้อยู่แล้ว)
+     */
+    const useDocker = params.containerName.trim().length > 0;
+
+    const localCommand =
+      process.env.PG_RESTORE_PATH ??
+      (process.env.PG_DUMP_PATH
+        ? path.join(path.dirname(process.env.PG_DUMP_PATH), "pg_restore.exe")
+        : "pg_restore");
+
+    const command = useDocker ? "docker" : localCommand;
+
+    const restoreArgs = [
       "-U",
       params.username,
       "-d",
@@ -75,8 +96,24 @@ function runDockerPgRestore(params: {
       "--no-acl",
     ];
 
-    const child = spawn("docker", args, {
+    const args = useDocker
+      ? [
+          "exec",
+          "-i",
+          "-e",
+          `PGPASSWORD=${params.password}`,
+          params.containerName.trim(),
+          "pg_restore",
+          ...restoreArgs,
+        ]
+      : ["-h", params.host, "-p", params.port, ...restoreArgs];
+
+    const child = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
+      /* เรียกตรงต้องส่งรหัสผ่านทาง env — ห้ามใส่ใน argv เพราะโผล่ในรายการโปรเซส */
+      env: useDocker
+        ? process.env
+        : { ...process.env, PGPASSWORD: params.password },
     });
 
     let stdout = "";
@@ -162,17 +199,23 @@ async function main() {
 
   console.log("Starting database restore...");
   console.log(`Database: ${databaseConfig.database}`);
-  console.log(`Container: ${containerName}`);
+  console.log(
+    containerName.trim()
+      ? `Container: ${containerName}`
+      : `Host: ${databaseConfig.host}:${databaseConfig.port} (pg_restore บนเครื่อง)`,
+  );
   console.log(`Input file: ${inputFile}`);
   console.log("");
   console.log("คำเตือน: คำสั่งนี้จะเขียนทับข้อมูลในฐานข้อมูลปัจจุบัน");
   console.log("");
 
-  await runDockerPgRestore({
+  await runPgRestore({
     containerName,
     database: databaseConfig.database,
     username: databaseConfig.username,
     password: databaseConfig.password,
+    host: databaseConfig.host,
+    port: databaseConfig.port,
     inputFile,
   });
 
