@@ -106,7 +106,7 @@ export function WelcomeTaskPanel() {
       header: "พนักงาน",
       cell: (item) => (
         <div className="min-w-0">
-          <p className="break-words font-semibold text-slate-900 3xl:text-[14px]">
+          <p className="whitespace-nowrap font-semibold text-slate-900 3xl:text-[14px]">
             {personName(item.employee)}
           </p>
           <p className="break-words text-[11px] text-slate-400 3xl:text-[12px]">

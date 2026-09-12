@@ -1856,7 +1856,7 @@ function EnrollmentModal({
                 </span>
 
                 <div className="min-w-[10rem] flex-1">
-                  <p className="break-words text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
+                  <p className="whitespace-nowrap text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
                     {item.employee?.displayName ??
                       [item.employee?.firstName, item.employee?.lastName]
                         .filter(Boolean)
@@ -2509,7 +2509,7 @@ function ScanLogModal({
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span
                           className={cn(
-                            "break-words text-[13px] font-bold 3xl:text-[13.5px]",
+                            "whitespace-nowrap text-[13px] font-bold 3xl:text-[13.5px]",
                             person.employeeName
                               ? "text-slate-900"
                               : "text-amber-700",

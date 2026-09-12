@@ -2210,7 +2210,7 @@ function DetailModal({
             size="md"
           />
           <div className="min-w-0">
-            <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+            <p className="whitespace-nowrap text-[14px] font-bold text-slate-900 3xl:text-[15px]">
               {employeeName(detail)}
             </p>
             <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
@@ -4750,19 +4750,19 @@ export default function HrReviewPage() {
             <table className="w-full table-fixed border-collapse text-[13px] 3xl:text-[13.5px]">
               <thead ref={headRef} className="bg-white text-left">
                 <tr className="border-b border-slate-200">
-                  <th className="w-[24%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
+                  <th className="w-[30%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
                     พนักงาน / ข้อมูลพื้นฐาน
                   </th>
-                  <th className="w-[24%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
+                  <th className="w-[22%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
                     รายการผิดปกติ
                   </th>
-                  <th className="w-[17%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
+                  <th className="w-[16%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
                     ผลต่อ Payroll
                   </th>
-                  <th className="w-[18%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
+                  <th className="w-[16%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
                     สถานะ
                   </th>
-                  <th className="w-[17%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
+                  <th className="w-[16%] whitespace-nowrap border-b border-slate-300 bg-slate-50 px-5 py-3.5 text-[12.5px] font-semibold tracking-normal text-slate-700 3xl:px-6 3xl:py-4 3xl:text-[13px] 4xl:px-7 4xl:py-[1.125rem] 4xl:text-[13.5px] xl:sticky xl:top-20 xl:z-20 xl:shadow-[inset_0_-1px_0_#cbd5e1]">
                     จัดการ
                   </th>
                 </tr>
@@ -4873,7 +4873,7 @@ export default function HrReviewPage() {
                           <div className="flex items-center gap-3">
                             <EmployeeAvatar item={item} />
                             <div className="min-w-0">
-                              <p className="break-words text-[13.5px] font-bold leading-5 text-slate-950 3xl:text-[14.5px]">
+                              <p className="whitespace-nowrap text-[13.5px] font-bold leading-5 text-slate-950 3xl:text-[14.5px]">
                                 {employeeName(item)}
                               </p>
                               <p

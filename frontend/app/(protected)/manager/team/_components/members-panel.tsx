@@ -337,7 +337,7 @@ export function TeamMembersPanel() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="break-words text-[13px] font-semibold text-slate-900">
+                    <p className="whitespace-nowrap text-[13px] font-semibold text-slate-900">
                       {getEmployeeName(member.employee)}
                     </p>
                     <p className="break-words text-[11.5px] text-slate-400">

@@ -870,7 +870,7 @@ export default function PayrollPeriodPage() {
           <CellStack
             primary={
               <span className="flex items-center gap-1.5">
-                <span className="break-words">{employeeName(item)}</span>
+                <span className="whitespace-nowrap">{employeeName(item)}</span>
                 {pendingIds.has(item.employeeId) ? (
                   <span
                     title="มีใบคำขอค้างในงวดนี้ ยอดอาจยังไม่นิ่ง"

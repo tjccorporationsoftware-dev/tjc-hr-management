@@ -281,7 +281,7 @@ export function TeamCalendarPanel() {
                   key={`leave-${leave.employeeId}`}
                   className="rounded-lg border border-slate-200 border-l-2 border-l-brand-300 px-3 py-2"
                 >
-                  <p className="break-words text-[13px] font-semibold text-slate-900">
+                  <p className="whitespace-nowrap text-[13px] font-semibold text-slate-900">
                     {leave.name}
                   </p>
                   <p className="truncate text-[11.5px] text-slate-500">
@@ -296,7 +296,7 @@ export function TeamCalendarPanel() {
                   key={`offsite-${offsite.employeeId}`}
                   className="rounded-lg border border-slate-200 border-l-2 border-l-slate-400 px-3 py-2"
                 >
-                  <p className="break-words text-[13px] font-semibold text-slate-900">
+                  <p className="whitespace-nowrap text-[13px] font-semibold text-slate-900">
                     {offsite.name}
                   </p>
                   <p className="truncate text-[11.5px] text-slate-500">

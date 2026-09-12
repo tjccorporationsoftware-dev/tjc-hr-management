@@ -143,7 +143,7 @@ function ProgressRow({
       <div className="flex min-w-[15rem] flex-1 items-center gap-3">
         <Avatar name={personName(item.employee)} size="md" />
         <div className="min-w-0">
-          <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+          <p className="whitespace-nowrap text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
             {personName(item.employee)}
           </p>
           <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">

@@ -687,16 +687,6 @@ export default function PayrollEmployeesPage() {
         }
         actions={
           <>
-            {/* ปุ่มหลักของหน้า — ทุกการเปลี่ยนเงินเดือนหลังตั้งค่าครั้งแรกเริ่มจากตรงนี้ */}
-            <div className="flex justify-end">
-              <ButtonLink
-                href="/payroll/employees/rounds"
-                variant="primary"
-                icon={<ClipboardList className="h-4 w-4" />}
-              >
-                รอบปรับค่าจ้าง
-              </ButtonLink>
-            </div>
             <div className="grid grid-cols-2 divide-x divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-[repeat(3,minmax(10.5rem,max-content))] sm:divide-y-0">
               <StatTile
                 icon={<BadgeCheck className="h-4 w-4" />}
@@ -830,6 +820,14 @@ export default function PayrollEmployeesPage() {
         </div>
 
         <div className="flex items-center gap-3 xl:shrink-0">
+          {/* ปุ่มหลักของหน้า — ทุกการเปลี่ยนเงินเดือนหลังตั้งค่าครั้งแรกเริ่มจากตรงนี้ (อยู่ระดับตาราง ไม่ใช่บนหัวหน้าที่มองข้ามง่าย) */}
+          <ButtonLink
+            href="/payroll/employees/rounds"
+            variant="primary"
+            icon={<ClipboardList className="h-4 w-4" />}
+          >
+            รอบปรับค่าจ้าง
+          </ButtonLink>
           <p className="hidden whitespace-nowrap text-[12px] 3xl:text-[13px] 4xl:text-[13.5px] text-slate-500 sm:block">
             {search || activeFilterCount > 0
               ? `เจอ ${count(filteredEmployees.length)} จาก ${count(employees.length)} คน`

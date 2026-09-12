@@ -572,7 +572,7 @@ export default function EmployeesPage() {
     {
       key: "employee",
       header: "พนักงาน",
-      width: "w-[26%]",
+      width: "w-[30%]",
       cell: (employee) => (
         <div className="flex min-w-0 items-center gap-3">
           <Avatar
@@ -581,7 +581,7 @@ export default function EmployeesPage() {
             size="lg"
           />
           <div className="min-w-0">
-            <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
+            <p className="whitespace-nowrap text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
               {employeeName(employee)}
             </p>
             <p className="break-words text-[11px] text-slate-400 3xl:text-[12px] 4xl:text-[12.5px]">
@@ -635,11 +635,11 @@ export default function EmployeesPage() {
     {
       key: "supervisor",
       header: "หัวหน้างาน",
-      width: "w-[13%]",
+      width: "w-[17%]",
       hideBelow: "xl",
       cell: (employee) =>
         employee.supervisor ? (
-          <span className="break-words">
+          <span className="whitespace-nowrap">
             {supervisorName(employee.supervisor)}
           </span>
         ) : (

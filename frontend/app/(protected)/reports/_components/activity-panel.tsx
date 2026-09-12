@@ -193,7 +193,7 @@ export function ActivityPanel({
                 </span>
 
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                  <p className="whitespace-nowrap text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                     {user.displayName ?? user.email ?? "ไม่ทราบชื่อ"}
                   </p>
                   <p className="break-words text-[11px] text-slate-400 3xl:text-[12px]">

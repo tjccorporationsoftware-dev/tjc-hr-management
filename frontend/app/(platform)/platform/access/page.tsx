@@ -400,7 +400,7 @@ export default function PlatformAccessPage() {
                         <UserRound className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block break-words text-sm font-semibold text-slate-900">
+                        <span className="block whitespace-nowrap text-sm font-semibold text-slate-900">
                           {user.displayName}
                         </span>
                         <span className="block break-words text-xs text-slate-500">

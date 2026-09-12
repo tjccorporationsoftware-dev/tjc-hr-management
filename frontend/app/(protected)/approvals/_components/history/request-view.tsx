@@ -863,7 +863,7 @@ function DetailModal({
         <Avatar name={name} src={employeeAvatarUrl(employee)} size="md" />
 
         <div className="min-w-0 flex-1">
-          <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+          <p className="whitespace-nowrap text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
             {name}
           </p>
           <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">

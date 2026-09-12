@@ -1337,7 +1337,7 @@ function EmployeeChip({ employee }: { employee: UnitMember }) {
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
-          <span className="min-w-0 flex-1 break-words text-[11px] font-bold text-slate-900">
+          <span className="min-w-0 flex-1 whitespace-nowrap text-[11px] font-bold text-slate-900">
             {name}
           </span>
           {isLead ? (
@@ -1558,7 +1558,7 @@ function SupervisorCard({
       )}
 
       <span className="min-w-0 flex-1">
-        <span className="block break-words text-[11.5px] font-bold text-slate-900">
+        <span className="block whitespace-nowrap text-[11.5px] font-bold text-slate-900">
           {name}
           {nickname ? (
             <span className="font-medium text-slate-400"> ({nickname})</span>

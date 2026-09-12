@@ -427,7 +427,7 @@ export function TodayPanel() {
                         size="sm"
                       />
                       <div className="min-w-0">
-                        <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                        <p className="whitespace-nowrap text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                           {getEmployeeName(member.employee)}
                         </p>
                         <p className="break-words text-[11.5px] text-slate-400 3xl:text-[12.5px]">

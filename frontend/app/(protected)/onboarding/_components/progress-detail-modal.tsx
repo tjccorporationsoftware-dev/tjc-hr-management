@@ -434,7 +434,7 @@ export function ProgressDetailModal({
       <div className="-mx-5 -mt-4 flex flex-wrap items-center gap-3 border-b border-brand-100 bg-brand-50/50 px-5 py-3">
         <Avatar name={personName(item.employee)} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+          <p className="whitespace-nowrap text-[14px] font-bold text-slate-900 3xl:text-[15px]">
             {personName(item.employee)}
           </p>
           <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">

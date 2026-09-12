@@ -117,7 +117,7 @@ function RecurringRow({
     <article className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
       <div className="min-w-[11rem] flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="break-words text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
+          <p className="whitespace-nowrap text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
             {row.name}
           </p>
           <Badge tone={deduction ? "critical" : "positive"}>
