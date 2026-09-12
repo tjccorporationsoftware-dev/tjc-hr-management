@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Fingerprint,
   Globe,
+  Link2,
   Loader2,
   Navigation,
   Pencil,
@@ -22,6 +23,8 @@ import { toast } from "sonner";
 
 import {
   apiFetch,
+  createAttendanceDeviceEnrollment,
+  getAttendanceDeviceEnrollments,
   getAttendanceDevices,
   getAttendanceLocations,
 } from "@/lib/api";
@@ -47,6 +50,10 @@ import type {
   EmployeeListItem,
   EmployeeListResponse,
 } from "@/types/employee";
+import type {
+  AttendanceDeviceEnrollment,
+  AttendanceLocation,
+} from "@/types/attendance";
 
 /* ------------------------------------------------------------------ */
 /* design tokens (ชุดเดียวกับหน้าอื่นในระบบ)                            */
@@ -79,6 +86,8 @@ const METHOD_MAP = new Map(
 type EmployeeDraft = {
   allowedAttendanceMethods: AttendanceMethod[];
   attendanceGeofenceRequired: boolean;
+  /** "" = ใช้จุดของสาขาอัตโนมัติ */
+  attendanceLocationId: string;
 };
 
 function cn(...classes: Array<string | false | undefined | null>) {
@@ -122,6 +131,7 @@ export function AttendanceMethodsPanel({
   const [draft, setDraft] = useState<EmployeeDraft>({
     allowedAttendanceMethods: [],
     attendanceGeofenceRequired: true,
+    attendanceLocationId: "",
   });
 
   // สามชุดนี้เดิมโหลดด้วย Promise.allSettled โดยรายชื่อพนักงานเป็นตัวบังคับ
@@ -173,8 +183,8 @@ export function AttendanceMethodsPanel({
   );
 
   const employees = employeesQuery.data?.items ?? [];
-  const devices = devicesQuery.data ?? [];
-  const locations = locationsQuery.data ?? [];
+  const devices = useMemo(() => devicesQuery.data ?? [], [devicesQuery.data]);
+  const locations = useMemo(() => locationsQuery.data ?? [], [locationsQuery.data]);
 
   const loading = employeesQuery.isPending;
   const refreshing = employeesQuery.isFetching && !employeesQuery.isPending;
@@ -319,15 +329,135 @@ export function AttendanceMethodsPanel({
     [locations],
   );
 
-  const branchHasGeofencePoint = useCallback(
-    (employee: EmployeeListItem) =>
-      activeGeofencePoints.some(
-        (location) =>
-          location.companyId === employee.companyId &&
-          (location.branchId === employee.branchId ||
-            location.branchId === null),
-      ),
+  /*
+   * จุดที่ระบบจะใช้ตรวจระยะจริงของคนนี้ — กติกาเดียวกับ backend
+   * (resolveBranchGeofenceLocation): จุดที่ผูกรายคน → จุดแรกของสาขา → จุดระดับบริษัท
+   * ต้องคำนวณเองที่หน้าจอเพื่อโชว์ชื่อจุดในแถว ไม่ใช่แค่บอกว่า "มี/ไม่มี"
+   */
+  const resolveGeofencePoint = useCallback(
+    (employee: EmployeeListItem): AttendanceLocation | null => {
+      const pinned = employee.attendanceLocationId
+        ? activeGeofencePoints.find(
+            (location) =>
+              location.id === employee.attendanceLocationId &&
+              location.companyId === employee.companyId,
+          )
+        : undefined;
+      if (pinned) return pinned;
+
+      const own = activeGeofencePoints.filter(
+        (location) => location.companyId === employee.companyId,
+      );
+      return (
+        own.find(
+          (location) =>
+            employee.branchId !== null &&
+            location.branchId === employee.branchId,
+        ) ??
+        own.find((location) => location.branchId === null) ??
+        null
+      );
+    },
     [activeGeofencePoints],
+  );
+
+  const branchHasGeofencePoint = useCallback(
+    (employee: EmployeeListItem) => resolveGeofencePoint(employee) !== null,
+    [resolveGeofencePoint],
+  );
+
+  /*
+   * รายชื่อคนที่ลงทะเบียนในเครื่องสแกน — API มีแค่ "ต่อเครื่อง" ไม่มี "ต่อคน"
+   * แต่เครื่องมีไม่กี่ตัว ดึงมาทั้งหมดแล้วจัดกลุ่มตามพนักงานที่หน้าจอถูกกว่า
+   * เพิ่ม endpoint ใหม่ที่ backend
+   */
+  const enrollmentsQuery = useApiQuery(
+    [...queryKeys.attendance.devices(), "enrollments-all", devices.map((d) => d.id).join(",")],
+    async () => {
+      const lists = await Promise.all(
+        devices.map((device) =>
+          getAttendanceDeviceEnrollments(device.id).catch(
+            () => [] as AttendanceDeviceEnrollment[],
+          ),
+        ),
+      );
+      return lists.flat();
+    },
+    { enabled: devices.length > 0 },
+  );
+
+  const enrollmentsByEmployee = useMemo(() => {
+    const map = new Map<string, AttendanceDeviceEnrollment[]>();
+    for (const enrollment of enrollmentsQuery.data ?? []) {
+      if (enrollment.status !== "ACTIVE") continue;
+      map.set(enrollment.employeeId, [
+        ...(map.get(enrollment.employeeId) ?? []),
+        enrollment,
+      ]);
+    }
+    return map;
+  }, [enrollmentsQuery.data]);
+
+  const deviceById = useMemo(
+    () => new Map(devices.map((device) => [device.id, device])),
+    [devices],
+  );
+
+  /* ตัวเลือกจุด GPS ในป๊อปอัพ — ของสาขาตัวเองขึ้นก่อน แล้วค่อยทุกสาขา แล้วค่อยสาขาอื่น */
+  const geofencePointOptions = useMemo(() => {
+    if (!editing) return [];
+    const own = activeGeofencePoints.filter(
+      (location) => location.companyId === editing.companyId,
+    );
+    const groups = [
+      {
+        key: "own",
+        label: `สาขาของพนักงาน · ${editing.branch?.nameTh ?? "ไม่ระบุสาขา"}`,
+        points: own.filter(
+          (location) =>
+            editing.branchId !== null && location.branchId === editing.branchId,
+        ),
+      },
+      {
+        key: "all",
+        label: "ใช้ได้ทุกสาขา",
+        points: own.filter((location) => location.branchId === null),
+      },
+      {
+        key: "other",
+        label: "สาขาอื่น",
+        points: own.filter(
+          (location) =>
+            location.branchId !== null && location.branchId !== editing.branchId,
+        ),
+      },
+    ];
+    return groups.filter((group) => group.points.length > 0);
+  }, [activeGeofencePoints, editing]);
+
+  /* ฟอร์มผูกเครื่องในป๊อปอัพ — เลือกเครื่อง + รหัสที่ลงทะเบียนไว้ในเครื่อง */
+  const [enrollDeviceId, setEnrollDeviceId] = useState("");
+  const [enrollDeviceUserId, setEnrollDeviceUserId] = useState("");
+
+  const enrollMutation = useApiMutation(
+    (input: { employee: EmployeeListItem; deviceId: string; deviceUserId: string }) =>
+      createAttendanceDeviceEnrollment(input.deviceId, {
+        employeeId: input.employee.id,
+        deviceUserId: input.deviceUserId.trim(),
+      }),
+    {
+      invalidates: [queryKeys.attendance.all],
+      onSuccess: (_data, input) => {
+        toast.success(
+          `ผูก ${employeeName(input.employee)} กับ ${deviceById.get(input.deviceId)?.name ?? "เครื่องสแกน"} แล้ว`,
+        );
+        setEnrollDeviceUserId("");
+      },
+      onError: (err) => {
+        toast.error(getErrorMessage(err, "ผูกเครื่องสแกนไม่สำเร็จ"));
+      },
+      showErrorToast: false,
+    },
   );
 
   const stats = useMemo(() => {
@@ -354,7 +484,10 @@ export function AttendanceMethodsPanel({
     setDraft({
       allowedAttendanceMethods: [...(employee.allowedAttendanceMethods ?? [])],
       attendanceGeofenceRequired: employee.attendanceGeofenceRequired,
+      attendanceLocationId: employee.attendanceLocationId ?? "",
     });
+    setEnrollDeviceId(devices.find((device) => device.status === "ACTIVE")?.id ?? "");
+    setEnrollDeviceUserId("");
   }
 
   function closeEdit() {
@@ -377,15 +510,17 @@ export function AttendanceMethodsPanel({
   function applyPreset(preset: "OFFICE" | "FIELD") {
     if (preset === "OFFICE") {
       // ประจำออฟฟิศ = ทุกวิธีที่ระบบมีจริง (เครื่องสแกนเฉพาะเมื่อมีอุปกรณ์)
-      setDraft({
+      setDraft((current) => ({
+        ...current,
         allowedAttendanceMethods: [...availableMethods],
         attendanceGeofenceRequired: true,
-      });
+      }));
     } else {
-      setDraft({
+      setDraft((current) => ({
+        ...current,
         allowedAttendanceMethods: ["WEB", "MOBILE"],
         attendanceGeofenceRequired: false,
-      });
+      }));
     }
   }
 
@@ -394,12 +529,14 @@ export function AttendanceMethodsPanel({
       employee: EmployeeListItem;
       allowedAttendanceMethods: string[];
       attendanceGeofenceRequired: boolean;
+      attendanceLocationId: string | null;
     }) =>
       apiFetch<EmployeeListItem>(`/employees/${input.employee.id}`, {
         method: "PATCH",
         body: JSON.stringify({
           allowedAttendanceMethods: input.allowedAttendanceMethods,
           attendanceGeofenceRequired: input.attendanceGeofenceRequired,
+          attendanceLocationId: input.attendanceLocationId,
         }),
       }),
     {
@@ -435,6 +572,7 @@ export function AttendanceMethodsPanel({
       employee: editing,
       allowedAttendanceMethods: methodsToSave,
       attendanceGeofenceRequired: draft.attendanceGeofenceRequired,
+      attendanceLocationId: draft.attendanceLocationId || null,
     });
   }
 
@@ -590,7 +728,12 @@ export function AttendanceMethodsPanel({
               allowed.length === 0 ? availableMethods : allowed
             ).filter((method) => availableMethods.includes(method));
             const geofenced = employee.attendanceGeofenceRequired;
-            const hasPoint = branchHasGeofencePoint(employee);
+            const point = resolveGeofencePoint(employee);
+            const hasPoint = point !== null;
+            const pinned =
+              Boolean(employee.attendanceLocationId) &&
+              point?.id === employee.attendanceLocationId;
+            const enrolled = enrollmentsByEmployee.get(employee.id) ?? [];
 
             return (
               <Fragment key={employee.id}>
@@ -700,11 +843,40 @@ export function AttendanceMethodsPanel({
                         สาขานี้ยังไม่มีจุด GPS
                       </p>
                     ) : (
-                      <p className="mt-0.5 truncate text-[11px] text-slate-400">
-                        {geofenced
-                          ? "มีจุด GPS ของสาขาแล้ว"
+                      <p
+                        className="mt-0.5 truncate text-[11px] text-slate-400"
+                        title={point?.nameTh}
+                      >
+                        {geofenced && point
+                          ? `${pinned ? "ผูกไว้: " : ""}${point.nameTh} · ${point.radiusMeters} ม.`
                           : "ไม่ตรวจระยะ แต่ยังเก็บพิกัด"}
                       </p>
+                    )}
+                  </div>
+
+                  {/* เครื่องสแกนที่ลงทะเบียนไว้ — คนที่อนุญาตเครื่องสแกนแต่ยังไม่ผูกต้องเห็นตรงนี้ */}
+                  <div className="w-44 shrink-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-brand-400">
+                      เครื่องสแกน
+                    </p>
+                    {enrolled.length > 0 ? (
+                      <p
+                        className="mt-0.5 truncate text-[11.5px] font-semibold text-slate-700"
+                        title={enrolled
+                          .map((e) => `${deviceById.get(e.deviceId)?.name ?? e.deviceId} (#${e.deviceUserId})`)
+                          .join(", ")}
+                      >
+                        {enrolled
+                          .map((e) => deviceById.get(e.deviceId)?.name ?? "เครื่อง")
+                          .join(", ")}
+                      </p>
+                    ) : shown.includes("DEVICE") ? (
+                      <p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-amber-600">
+                        <AlertTriangle className="h-3 w-3" />
+                        ยังไม่ผูกเครื่อง
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[11px] text-slate-300">ไม่ใช้เครื่องสแกน</p>
                     )}
                   </div>
 
@@ -868,16 +1040,135 @@ export function AttendanceMethodsPanel({
                 </span>
               </label>
 
+              {draft.attendanceGeofenceRequired ? (
+                <div className="mt-3">
+                  <label className="block text-[12px] font-semibold text-slate-700">
+                    จุดลงเวลา GPS ที่ใช้ตรวจระยะ
+                  </label>
+                  <select
+                    value={draft.attendanceLocationId}
+                    onChange={(event) =>
+                      setDraft((current) => ({
+                        ...current,
+                        attendanceLocationId: event.target.value,
+                      }))
+                    }
+                    disabled={saving}
+                    className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
+                  >
+                    <option value="">
+                      {(() => {
+                        const auto = resolveGeofencePoint({ ...editing, attendanceLocationId: null });
+                        return auto
+                          ? `ตามสาขา (อัตโนมัติ) — ${auto.nameTh} · ${auto.radiusMeters} ม.`
+                          : "ตามสาขา (อัตโนมัติ) — สาขานี้ยังไม่มีจุด";
+                      })()}
+                    </option>
+                    {geofencePointOptions.map((group) => (
+                      <optgroup key={group.key} label={group.label}>
+                        {group.points.map((location) => (
+                          <option key={location.id} value={location.id}>
+                            {location.nameTh} · รัศมี {location.radiusMeters} ม.
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                    สาขาที่ไม่มีเครื่องสแกนใช้ GPS แทนได้ — ปักหมุดจุดของสาขานั้นที่แท็บ
+                    &ldquo;จุดลงเวลา GPS&rdquo; แล้วเลือกตรงนี้ หรือปล่อยเป็นอัตโนมัติถ้าเป็นจุดของสาขาตัวเอง
+                  </p>
+                </div>
+              ) : null}
+
               {draft.attendanceGeofenceRequired &&
+              !draft.attendanceLocationId &&
               !branchHasGeofencePoint(editing) ? (
                 <div className="mt-2.5">
                   <NoticeBar tone="rose" icon={AlertTriangle}>
-                    สาขาของพนักงานคนนี้ยังไม่มีจุด GPS ที่เปิดใช้งาน — บันทึกได้
-                    แต่ระบบจะยังตรวจระยะไม่ได้จนกว่าจะปักหมุดจุดของสาขา
+                    สาขาของพนักงานคนนี้ยังไม่มีจุด GPS ที่เปิดใช้งาน — เลือกจุดจากรายการด้านบน
+                    หรือปักหมุดจุดของสาขาก่อน ไม่งั้นระบบจะยังตรวจระยะไม่ได้
                   </NoticeBar>
                 </div>
               ) : null}
             </FormSection>
+
+            {draft.allowedAttendanceMethods.includes("DEVICE") ? (
+              <FormSection
+                title="เครื่องสแกนที่ผูกไว้"
+                hint="รหัสในเครื่อง = หมายเลขผู้ใช้ที่ลงทะเบียนนิ้วไว้ในเครื่องสแกน ต้องตรงกันระบบถึงจับคู่รอยสแกนกับคนได้"
+              >
+                {(enrollmentsByEmployee.get(editing.id) ?? []).length > 0 ? (
+                  <ul className="mb-3 divide-y divide-slate-100 rounded-lg border border-slate-200">
+                    {(enrollmentsByEmployee.get(editing.id) ?? []).map((enrollment) => (
+                      <li key={enrollment.id} className="flex items-center gap-2.5 px-3 py-2 text-[13px]">
+                        <Fingerprint className="h-4 w-4 shrink-0 text-brand-600" />
+                        <span className="min-w-0 flex-1 truncate font-semibold text-slate-800">
+                          {deviceById.get(enrollment.deviceId)?.name ?? enrollment.deviceId}
+                        </span>
+                        <span className="shrink-0 text-[12px] text-slate-500">
+                          รหัสในเครื่อง #{enrollment.deviceUserId}
+                          {enrollment.fingerCount ? ` · ${enrollment.fingerCount} นิ้ว` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="mb-3">
+                    <NoticeBar tone="amber" icon={AlertTriangle}>
+                      ยังไม่ได้ผูกกับเครื่องสแกนตัวไหน — รอยสแกนของคนนี้จะไม่ถูกจับคู่จนกว่าจะผูก
+                    </NoticeBar>
+                  </div>
+                )}
+
+                <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+                  <select
+                    value={enrollDeviceId}
+                    onChange={(event) => setEnrollDeviceId(event.target.value)}
+                    disabled={enrollMutation.isPending}
+                    className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
+                  >
+                    {devices
+                      .filter((device) => device.status === "ACTIVE")
+                      .map((device) => (
+                        <option key={device.id} value={device.id}>
+                          {device.name}
+                        </option>
+                      ))}
+                  </select>
+                  <input
+                    value={enrollDeviceUserId}
+                    onChange={(event) => setEnrollDeviceUserId(event.target.value.replace(/\s/g, ""))}
+                    placeholder="รหัสในเครื่อง"
+                    disabled={enrollMutation.isPending}
+                    className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-brand-300 focus:ring-4 focus:ring-brand-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!enrollDeviceId || !enrollDeviceUserId.trim()) {
+                        toast.error("เลือกเครื่องและใส่รหัสในเครื่องก่อน");
+                        return;
+                      }
+                      enrollMutation.mutate({
+                        employee: editing,
+                        deviceId: enrollDeviceId,
+                        deviceUserId: enrollDeviceUserId,
+                      });
+                    }}
+                    disabled={enrollMutation.isPending || !enrollDeviceId}
+                    className={GHOST_BUTTON}
+                  >
+                    {enrollMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="h-4 w-4" />
+                    )}
+                    ผูกเครื่อง
+                  </button>
+                </div>
+              </FormSection>
+            ) : null}
           </div>
 
           <ModalFooter>

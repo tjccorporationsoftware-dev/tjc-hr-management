@@ -11,6 +11,7 @@ import {
   MaxLength,
   Min,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import {
   AttendanceMethod,
@@ -333,6 +334,12 @@ export class UpdateEmployeeDto {
   @IsOptional()
   @IsBoolean()
   attendanceGeofenceRequired?: boolean;
+
+  /** จุดลงเวลา GPS ที่ผูกรายคน — ส่ง null เพื่อกลับไปใช้จุดของสาขา */
+  @IsOptional()
+  @ValidateIf((_o, value) => value !== null)
+  @IsString()
+  attendanceLocationId?: string | null;
 
   @IsOptional()
   @IsString()

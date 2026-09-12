@@ -468,6 +468,27 @@ export class EmployeesService {
 
     await this.validateUpdate(id, dto, targetCompanyId, targetBranchId);
 
+    /*
+     * จุดลงเวลาที่ผูกรายคนต้องเป็นของบริษัทเดียวกันและยังใช้งานอยู่
+     * ไม่งั้นพนักงานย้ายบริษัทแล้วจะยังถูกบังคับให้อยู่ในรัศมีของที่เก่า
+     */
+    if (dto.attendanceLocationId) {
+      const location = await this.prisma.attendanceLocation.findFirst({
+        where: {
+          id: dto.attendanceLocationId,
+          companyId: targetCompanyId,
+          deletedAt: null,
+        },
+        select: { id: true, status: true },
+      });
+      if (!location) {
+        throw new BadRequestException('ไม่พบจุดลงเวลานี้ในบริษัทของพนักงาน');
+      }
+      if (location.status !== 'ACTIVE') {
+        throw new BadRequestException('จุดลงเวลานี้ถูกปิดใช้งานอยู่');
+      }
+    }
+
     const shouldCreateWorkHistory = this.shouldCreateWorkHistory(current, dto);
     const selectedPosition = dto.positionId
       ? await this.findActivePosition(dto.positionId)
@@ -548,6 +569,9 @@ export class EmployeesService {
             : {}),
           ...(dto.attendanceGeofenceRequired !== undefined
             ? { attendanceGeofenceRequired: dto.attendanceGeofenceRequired }
+            : {}),
+          ...(dto.attendanceLocationId !== undefined
+            ? { attendanceLocationId: dto.attendanceLocationId || null }
             : {}),
           ...(dto.supervisorId !== undefined
             ? { supervisorId: dto.supervisorId || null }
@@ -1443,6 +1467,16 @@ export class EmployeesService {
           code: true,
           nameTh: true,
           nameEn: true,
+        },
+      },
+      attendanceLocation: {
+        select: {
+          id: true,
+          code: true,
+          nameTh: true,
+          branchId: true,
+          radiusMeters: true,
+          status: true,
         },
       },
       department: {

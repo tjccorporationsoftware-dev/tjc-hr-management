@@ -12825,7 +12825,36 @@ export class AttendanceService {
   private async resolveBranchGeofenceLocation(employee: {
     companyId: string;
     branchId: string | null;
+    attendanceLocationId?: string | null;
   }) {
+    /*
+     * จุดที่ผูกให้รายคนมาก่อนเสมอ — สาขาที่ไม่มีเครื่องสแกนใช้ GPS แทน และบางคน
+     * ประจำหน้างานคนละที่กับสาขาที่สังกัด ถ้าจุดนั้นถูกปิด/ลบ/ยังไม่ปักหมุด
+     * ให้ตกไปใช้ของสาขาเหมือนเดิม ไม่ใช่ล็อกจนลงเวลาไม่ได้
+     */
+    if (employee.attendanceLocationId) {
+      const pinned = await this.prisma.attendanceLocation.findFirst({
+        where: {
+          id: employee.attendanceLocationId,
+          companyId: employee.companyId,
+          deletedAt: null,
+          status: "ACTIVE",
+          latitude: { not: null },
+          longitude: { not: null },
+        },
+        select: {
+          id: true,
+          code: true,
+          nameTh: true,
+          branchId: true,
+          latitude: true,
+          longitude: true,
+          radiusMeters: true,
+        },
+      });
+      if (pinned) return pinned;
+    }
+
     // ผู้สมัคร: จุดที่ตรงสาขาพนักงาน (ถ้ามีสาขา) หรือจุดระดับบริษัท (branchId = null = ทุกสาขา)
     const candidates = await this.prisma.attendanceLocation.findMany({
       where: {
@@ -12872,7 +12901,11 @@ export class AttendanceService {
    * - ถ้าสาขายังไม่ได้ตั้งจุด → คืน null (ไม่บังคับ)
    */
   private async enforceBranchGeofence(
-    employee: { companyId: string; branchId: string | null },
+    employee: {
+      companyId: string;
+      branchId: string | null;
+      attendanceLocationId?: string | null;
+    },
     dto: { latitude?: number; longitude?: number },
   ): Promise<{
     locationId: string;

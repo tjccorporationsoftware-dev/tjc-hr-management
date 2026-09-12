@@ -113,6 +113,16 @@ export type EmployeeListItem = {
 
   allowedAttendanceMethods: AttendanceMethod[];
   attendanceGeofenceRequired: boolean;
+  /** จุดลงเวลา GPS ที่ผูกรายคน — null = ใช้จุดของสาขา */
+  attendanceLocationId?: string | null;
+  attendanceLocation?: {
+    id: string;
+    code: string;
+    nameTh: string;
+    branchId: string | null;
+    radiusMeters: number;
+    status: "ACTIVE" | "INACTIVE";
+  } | null;
   /** false = ไม่ต้องลงเวลาเลย (ผู้บริหาร / เหมาจ่าย) */
   attendanceTrackingRequired?: boolean;
   /** รอบลงเวลาที่ยกเว้นเป็นรายคน เช่น พนักงานจัดส่งไม่ต้องกดเข้างานบ่าย */
