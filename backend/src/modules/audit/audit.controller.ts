@@ -1,9 +1,10 @@
-import { Controller, Get, Query } from "@nestjs/common";
+import { Controller, Delete, Get, Query } from "@nestjs/common";
 import { Audit } from "../../common/decorators/audit.decorator";
 import { Auth } from "../../common/decorators/auth.decorator";
 import { AuditAction } from "../../generated/prisma/client";
 import { AuditCriticalActionsQueryDto } from "./dto/audit-critical-actions-query.dto";
 import { AuditLogQueryDto } from "./dto/audit-log-query.dto";
+import { AuditPurgeQueryDto } from "./dto/audit-purge-query.dto";
 import { AuditSummaryQueryDto } from "./dto/audit-summary-query.dto";
 import { AuditService } from "./audit.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -53,5 +54,19 @@ export class AuditController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.auditService.getCriticalActions(query, user.scope);
+  }
+
+  @Delete("logs")
+  @Auth("ORG_MANAGE")
+  @Audit({
+    action: AuditAction.DELETE,
+    entity: "AuditLog",
+    description: "ล้างประวัติการใช้งาน",
+  })
+  async purgeLogs(
+    @Query() query: AuditPurgeQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.auditService.purgeLogs(query, user.scope);
   }
 }

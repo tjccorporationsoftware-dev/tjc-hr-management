@@ -87,3 +87,67 @@ describe('applyScopeToAuditWhere', () => {
     expect(where).toEqual({ action: 'LOGIN' });
   });
 });
+
+/**
+ * ปุ่มล้างประวัติต้องอยู่ใต้ขอบเขตเดียวกับการอ่าน — ผู้ดูแลระดับบริษัทกดล้าง
+ * แล้วต้องหายเฉพาะของบริษัทตัวเอง ไม่ใช่กวาดทั้งแพลตฟอร์ม
+ */
+describe('purgeLogs', () => {
+  function buildPurgeService() {
+    const deleteMany = jest.fn(() => Promise.resolve({ count: 3 }));
+    const service = new AuditService({
+      auditLog: { deleteMany },
+    } as never);
+    return { service, deleteMany };
+  }
+
+  it('ระดับบริษัทลบเฉพาะบริษัทตัวเอง และตัดที่วันที่ตามที่ขอ', async () => {
+    const { service, deleteMany } = buildPurgeService();
+    const before = Date.now();
+
+    const result = await service.purgeLogs({ olderThanDays: 30 }, {
+      level: 'COMPANY',
+      companyId: 'com-1',
+      branchId: null,
+    });
+
+    const where = deleteMany.mock.calls[0][0].where as {
+      companyId: string;
+      createdAt: { lt: Date };
+    };
+    expect(where.companyId).toBe('com-1');
+    const daysBack = (before - where.createdAt.lt.getTime()) / 86_400_000;
+    expect(daysBack).toBeGreaterThanOrEqual(29.99);
+    expect(daysBack).toBeLessThan(30.01);
+    expect(result.deleted).toBe(3);
+  });
+
+  it('olderThanDays = 0 คือลบทั้งหมดจนถึงตอนนี้ แต่ยังอยู่ในขอบเขตบริษัท', async () => {
+    const { service, deleteMany } = buildPurgeService();
+
+    await service.purgeLogs({ olderThanDays: 0 }, {
+      level: 'COMPANY',
+      companyId: 'com-2',
+      branchId: null,
+    });
+
+    const where = deleteMany.mock.calls[0][0].where as {
+      companyId: string;
+      createdAt: { lt: Date };
+    };
+    expect(where.companyId).toBe('com-2');
+    expect(where.createdAt.lt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('ระดับแพลตฟอร์มไม่ใส่ตัวกรองบริษัท', async () => {
+    const { service, deleteMany } = buildPurgeService();
+
+    await service.purgeLogs({ olderThanDays: 7 }, {
+      level: 'GLOBAL',
+      companyId: null,
+      branchId: null,
+    });
+
+    expect(deleteMany.mock.calls[0][0].where).not.toHaveProperty('companyId');
+  });
+});

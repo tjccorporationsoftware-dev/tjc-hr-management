@@ -105,6 +105,7 @@ import type {
   GenerateLeaveBalancesBulkForm,
   GenerateLeaveBalancesBulkResult,
   GenerateLeaveBalancesForm,
+  LeaveAttachment,
   LeaveBalance,
   LeaveCatalogListResponse,
   LeaveTypeMatrixResponse,
@@ -151,6 +152,7 @@ import type {
   CreateOvertimePolicyForm,
   CreateOvertimeRequestForm,
   OvertimeAttachment,
+  OvertimeDayTypePreview,
   OvertimeMatrixResponse,
   OvertimePolicy,
   OvertimePolicyListParams,
@@ -378,6 +380,7 @@ import type {
   AuditLogItem,
   AuditLogListParams,
   AuditLogListResponse,
+  AuditPurgeResult,
   AuditSummary,
 } from "@/types/audit";
 import type {
@@ -1008,6 +1011,14 @@ export async function getAuditSummary(days = 7) {
 export async function getAuditCriticalActions(days = 7, limit = 20) {
   return apiFetch<AuditCriticalActions>(
     `/audit/critical-actions${buildQueryString({ days, limit })}`,
+  );
+}
+
+/** ล้างประวัติการใช้งานที่เก่ากว่า N วัน (0 = ทั้งหมด) คืนจำนวนที่ลบ */
+export async function purgeAuditLogs(olderThanDays: number) {
+  return apiFetch<AuditPurgeResult>(
+    `/audit/logs${buildQueryString({ olderThanDays })}`,
+    { method: "DELETE" },
   );
 }
 
@@ -2145,6 +2156,39 @@ export async function deleteLeaveRequest(id: string) {
   });
 }
 
+/* --- ไฟล์แนบใบลา (ฝั่ง HR / ผู้ดูแล ใช้ตอนยื่นแทนพนักงาน) --- */
+
+export async function getLeaveAttachments(leaveRequestId: string) {
+  return apiFetch<LeaveAttachment[]>(
+    `/leaves/requests/${leaveRequestId}/attachments`,
+  );
+}
+
+export async function uploadLeaveAttachment(
+  leaveRequestId: string,
+  payload: FormData,
+) {
+  return apiFetch<LeaveAttachment>(
+    `/leaves/requests/${leaveRequestId}/attachments/upload`,
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function deleteLeaveAttachment(
+  leaveRequestId: string,
+  attachmentId: string,
+) {
+  return apiFetch<{ id: string; deleted: boolean }>(
+    `/leaves/requests/${leaveRequestId}/attachments/${attachmentId}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
 export async function getLeaveBalances(params?: LeaveBalanceListParams) {
   return apiFetch<LeaveBalanceListResponse>(
     `/leaves/balances${buildQueryString(params)}`,
@@ -2281,6 +2325,16 @@ export async function getOvertimeRequests(params?: OvertimeRequestListParams) {
 
 export async function getOvertimeRequest(id: string) {
   return apiFetch<OvertimeRequest>(`/overtime/requests/${id}`);
+}
+
+/** ถามประเภทวัน (วันทำงาน/วันหยุด) ตามปฏิทินของพนักงานคนนั้น ก่อนยื่น OT แทน */
+export async function getOvertimeDayType(params: {
+  workDate: string;
+  employeeId?: string;
+}) {
+  return apiFetch<OvertimeDayTypePreview>(
+    `/overtime/requests/day-type${buildQueryString(params)}`,
+  );
 }
 
 export async function createOvertimeRequest(

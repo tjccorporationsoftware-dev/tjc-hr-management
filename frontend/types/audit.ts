@@ -77,3 +77,9 @@ export type AuditCriticalActions = {
   byEntity: AuditSummaryItem[];
   recentLogs: AuditLogItem[];
 };
+
+export type AuditPurgeResult = {
+  deleted: number;
+  olderThanDays: number;
+  cutoff: string;
+};

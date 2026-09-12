@@ -3,6 +3,7 @@ import type { AuditAction, Prisma } from "../../generated/prisma/client";
 import { PrismaService } from "../../database/prisma.service";
 import { AuditCriticalActionsQueryDto } from "./dto/audit-critical-actions-query.dto";
 import { AuditLogQueryDto } from "./dto/audit-log-query.dto";
+import { AuditPurgeQueryDto } from "./dto/audit-purge-query.dto";
 import { AuditSummaryQueryDto } from "./dto/audit-summary-query.dto";
 import type { TenantScope } from "../../common/interfaces/authenticated-user.interface";
 
@@ -164,6 +165,31 @@ export class AuditService {
         total,
         totalPages: Math.ceil(total / pageSize),
       },
+    };
+  }
+
+  /**
+   * ล้างประวัติที่เก่ากว่า N วัน (0 = ทั้งหมดจนถึงตอนนี้)
+   *
+   * ไม่ทำ soft delete เพราะประวัติการใช้งานคือของที่ผู้ดูแลตั้งใจทิ้งเพื่อลดจำนวน
+   * ไม่ใช่ข้อมูลธุรกิจ และตารางนี้โตเร็วที่สุดในระบบ (ทุก request ที่ผ่าน interceptor)
+   * จำกัดตามขอบเขตบริษัทของผู้สั่ง — ผู้ดูแลระดับบริษัทลบได้เฉพาะของบริษัทตัวเอง
+   *
+   * การลบครั้งนี้เองจะถูกบันทึกเป็นประวัติใหม่โดย interceptor หลังจบ จึงตามย้อนได้เสมอ
+   */
+  async purgeLogs(query: AuditPurgeQueryDto, scope?: TenantScope) {
+    const cutoff = new Date(Date.now() - query.olderThanDays * 86_400_000);
+    const where = this.applyScopeToAuditWhere(
+      { createdAt: { lt: cutoff } },
+      scope,
+    );
+
+    const result = await this.prisma.auditLog.deleteMany({ where });
+
+    return {
+      deleted: result.count,
+      olderThanDays: query.olderThanDays,
+      cutoff,
     };
   }
 
