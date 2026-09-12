@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Building2,
+  ClipboardPen,
   Clock,
   Database,
   KeyRound,
@@ -55,6 +56,12 @@ const PLATFORM_NAV: PlatformNavItem[] = [
     href: "/platform/attendance-entry",
     icon: Clock,
     description: "กรอกเวลาลงเวลาให้พนักงานเอง",
+  },
+  {
+    title: "ยื่นคำขอแทนพนักงาน",
+    href: "/platform/requests",
+    icon: ClipboardPen,
+    description: "ใบลา / OT / แก้เวลา / นอกสถานที่",
   },
   {
     title: "นำเข้าข้อมูล",

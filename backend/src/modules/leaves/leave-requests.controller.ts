@@ -8,7 +8,11 @@ import {
   Post,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 import { AuditAction } from '../../generated/prisma/client';
 import { Audit } from '../../common/decorators/audit.decorator';
 import { Auth } from '../../common/decorators/auth.decorator';
@@ -18,11 +22,25 @@ import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { LeaveRequestActionDto } from './dto/leave-request-action.dto';
 import { ListLeaveRequestsQueryDto } from './dto/list-leave-requests-query.dto';
 import { UpdateLeaveRequestDto } from './dto/update-leave-request.dto';
+import { UploadLeaveAttachmentDto } from './dto/upload-leave-attachment.dto';
+import {
+  createLeaveAttachmentFileName,
+  ensureLeaveAttachmentStorageDir,
+  LEAVE_ATTACHMENT_MAX_FILE_SIZE,
+  leaveAttachmentFileFilter,
+  validateLeaveAttachmentFile,
+} from './leave-attachment-storage.util';
 import { LeaveRequestsService } from './leave-requests.service';
 import { LeaveAttachmentService } from './services/leave-attachment.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from '../../common/interfaces/authenticated-user.interface';
 import type { CurrentUserLike } from './types/leave.types';
+
+type RequestWithParams = Request & {
+  params: {
+    id?: string;
+  };
+};
 
 @Auth()
 @Controller('leaves/requests')
@@ -158,6 +176,86 @@ export class LeaveRequestsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ) {
     return this.leaveRequestsService.findAll(query, currentUser.scope);
+  }
+
+  /* -------------------------------------------------------------------------
+   * ATTACHMENT ROUTES (ฝั่ง HR / ผู้ดูแล)
+   * ใช้ตอนยื่นใบลาแทนพนักงาน ซึ่งต้องแนบใบรับรองแพทย์ให้ครบก่อนส่งเข้าคิว
+   * ฝั่งพนักงานยื่นเองใช้ /ess/leave-requests/:id/attachments แทน
+   * ---------------------------------------------------------------------- */
+
+  @Get(':id/attachments')
+  @RequirePermissions('LEAVE_READ')
+  @Audit({
+    action: AuditAction.VIEW,
+    entity: 'LeaveAttachment',
+    description: 'ดูไฟล์หลักฐานแนบใบลา',
+  })
+  findAttachments(
+    @Param('id') id: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ) {
+    return this.leaveAttachmentService.findAttachments(id, currentUser.scope);
+  }
+
+  @Post(':id/attachments/upload')
+  @RequirePermissions('LEAVE_CREATE')
+  @Audit({
+    action: AuditAction.UPLOAD,
+    entity: 'LeaveAttachment',
+    description: 'อัปโหลดไฟล์หลักฐานแนบใบลา',
+  })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req: RequestWithParams, _file, callback) => {
+          const dir = ensureLeaveAttachmentStorageDir(req.params.id);
+          callback(null, dir);
+        },
+        filename: (_req, file, callback) => {
+          callback(null, createLeaveAttachmentFileName(file.originalname));
+        },
+      }),
+      fileFilter: leaveAttachmentFileFilter,
+      limits: {
+        fileSize: LEAVE_ATTACHMENT_MAX_FILE_SIZE,
+      },
+    }),
+  )
+  uploadAttachment(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: UploadLeaveAttachmentDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ) {
+    validateLeaveAttachmentFile(file);
+
+    return this.leaveAttachmentService.uploadAttachment(
+      id,
+      dto,
+      file,
+      currentUser.scope,
+      currentUser.id,
+    );
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  @RequirePermissions('LEAVE_DELETE')
+  @Audit({
+    action: AuditAction.DELETE,
+    entity: 'LeaveAttachment',
+    description: 'ลบไฟล์หลักฐานแนบใบลา',
+  })
+  removeAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ) {
+    return this.leaveAttachmentService.removeAttachment(
+      id,
+      attachmentId,
+      currentUser.scope,
+    );
   }
 
   @Get(':id/attachments/:attachmentId/download')

@@ -53,6 +53,8 @@ export const queryKeys = {
     detail: (id: string) => ["overtime", "detail", id] as const,
     policies: (params?: Params) =>
       ["overtime", "policies", params ?? {}] as const,
+    dayType: (params?: Params) =>
+      ["overtime", "day-type", params ?? {}] as const,
   },
 
   timeAdjust: {

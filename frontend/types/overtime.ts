@@ -9,6 +9,15 @@ export type OvertimeRequestStatus =
 
 export type OvertimeWorkType = "WORKDAY" | "HOLIDAY" | "SPECIAL_HOLIDAY";
 
+/** ผลจาก GET /overtime/requests/day-type — ระบบตัดสินประเภทวันจากปฏิทินวันหยุดให้ */
+export type OvertimeDayTypePreview = {
+  workDate: string;
+  workType: OvertimeWorkType;
+  label: string;
+  holidayName: string | null;
+  reason: string;
+};
+
 /** "เวลาคำนวณ" — เริ่มคำนวณทันที หรือเริ่มนับหลังผ่านขั้นต่ำ */
 export type OvertimeCalcStartMode = "IMMEDIATE" | "AFTER_MIN_MINUTES";
 
