@@ -432,6 +432,7 @@ export class OnboardingService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,
@@ -2042,6 +2043,7 @@ export class OnboardingService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           firstName: true,
           lastName: true,
           displayName: true,
@@ -2095,6 +2097,7 @@ export class OnboardingService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           firstName: true,
           lastName: true,
           displayName: true,
@@ -2125,6 +2128,7 @@ export class OnboardingService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           firstName: true,
           lastName: true,
           displayName: true,
@@ -2168,6 +2172,7 @@ export class OnboardingService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               firstName: true,
               lastName: true,
               displayName: true,

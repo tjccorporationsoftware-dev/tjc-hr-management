@@ -1069,7 +1069,7 @@ export class RecruitmentService {
         },
       },
       hiredEmployee: {
-        select: { id: true, employeeCode: true, displayName: true },
+        select: { id: true, employeeCode: true, nickname: true, displayName: true },
       },
       ...(full
         ? {

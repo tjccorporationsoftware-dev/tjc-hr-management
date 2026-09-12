@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { employeeDisplayName } from "../../common/utils/employee-display-name.util";
 
 import {
   BadRequestException,
@@ -1803,6 +1804,7 @@ export class AttendanceService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         companyId: true,
         branchId: true,
         employeeTypeId: true,
@@ -2186,13 +2188,12 @@ export class AttendanceService {
       displayName: string | null;
       firstName: string;
       lastName: string;
+      nickname?: string | null;
     } | null | undefined) => {
       if (!employee) return null;
 
-      return (
-        employee.displayName?.trim() ||
-        `${employee.firstName} ${employee.lastName}`.trim()
-      );
+      // หน้าจอ HR — ต่อชื่อเล่นให้เหมือนทุกหน้า
+      return employeeDisplayName(employee, { includeTitle: false });
     };
 
     const rows = new Map<string, ScanPersonRow>();
@@ -2323,6 +2324,7 @@ export class AttendanceService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         companyId: true,
@@ -2480,6 +2482,7 @@ export class AttendanceService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               firstName: true,
               lastName: true,
             },
@@ -2625,6 +2628,7 @@ export class AttendanceService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           displayName: true,
           firstName: true,
           lastName: true,
@@ -3008,6 +3012,7 @@ export class AttendanceService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,
@@ -3804,6 +3809,7 @@ export class AttendanceService {
           divisionId: true,
           employeeTypeId: true,
           employeeCode: true,
+          nickname: true,
           firstName: true,
           lastName: true,
           displayName: true,
@@ -4581,6 +4587,7 @@ export class AttendanceService {
           e."firstName",
           e."lastName",
           e."displayName",
+          e.nickname,
           e.position,
           e.status,
           e."attendanceTrackingRequired",
@@ -4705,6 +4712,7 @@ export class AttendanceService {
             'firstName', ee."firstName",
             'lastName', ee."lastName",
             'displayName', ee."displayName",
+            'nickname', ee.nickname,
             'position', ee.position,
             'status', ee.status,
             -- หน้าตรวจก่อนเข้าเงินเดือนใช้สองค่านี้จัดลำดับแถวตามกติกาลงเวลาของแต่ละคน
@@ -5105,6 +5113,7 @@ export class AttendanceService {
         branchId: true,
         employeeTypeId: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,
@@ -7785,6 +7794,7 @@ export class AttendanceService {
         divisionId: true,
         employeeTypeId: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         displayName: true,
@@ -12297,6 +12307,7 @@ export class AttendanceService {
           branchId: true,
           employeeTypeId: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -12374,6 +12385,7 @@ export class AttendanceService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,

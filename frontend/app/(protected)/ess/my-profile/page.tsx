@@ -85,12 +85,13 @@ function MyInformation() {
   const profile = query.data ?? null;
   const employee = profile?.employee ?? null;
 
+  /* ชื่อจาก API มีชื่อเล่นต่อท้ายแล้ว (apiFetch) เอาตัวนั้นก่อน ค่อยประกอบเองถ้าไม่มี */
   const displayName =
+    employee?.displayName ||
     [employee?.title, employee?.firstName, employee?.lastName]
       .map((part) => part?.trim())
       .filter(Boolean)
       .join(" ") ||
-    employee?.displayName ||
     profile?.user.displayName ||
     "ข้อมูลของฉัน";
 

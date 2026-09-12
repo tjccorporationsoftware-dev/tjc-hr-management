@@ -306,7 +306,7 @@ export class EmployeesService {
     await this.validateCreate(scopedDto);
 
     const displayName =
-      scopedDto.displayName?.trim() ||
+      this.stripNicknameSuffix(scopedDto.displayName, scopedDto.nickname) ||
       [scopedDto.title, scopedDto.firstName, scopedDto.lastName].filter(Boolean).join(' ');
 
     const selectedPosition = scopedDto.positionId
@@ -516,7 +516,12 @@ export class EmployeesService {
             ? { nickname: this.optionalTrim(dto.nickname) }
             : {}),
           ...(dto.displayName !== undefined
-            ? { displayName: this.optionalTrim(dto.displayName) }
+            ? {
+                displayName: this.stripNicknameSuffix(
+                  dto.displayName,
+                  dto.nickname !== undefined ? dto.nickname : current.nickname,
+                ),
+              }
             : {}),
           ...(dto.email !== undefined
             ? { email: this.optionalTrim(dto.email) }
@@ -861,6 +866,7 @@ export class EmployeesService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
       },
     });
 
@@ -1518,6 +1524,7 @@ export class EmployeesService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -1610,6 +1617,7 @@ export class EmployeesService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -1637,6 +1645,7 @@ export class EmployeesService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -2130,6 +2139,7 @@ export class EmployeesService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         displayName: true,
         firstName: true,
         lastName: true,
@@ -2654,6 +2664,22 @@ export class EmployeesService {
     } catch {
       // ignore cleanup error
     }
+  }
+
+  /**
+   * หน้าเว็บโชว์ชื่อเป็น "ชื่อ (ชื่อเล่น)" ทุกหน้า ถ้าฟอร์มแก้ไขเผลอส่งค่าที่โชว์กลับมา
+   * ห้ามให้ชื่อเล่นฝังเข้าไปในคอลัมน์ displayName — เอกสารทางการ (สลิป, ภ.ง.ด., สปส.)
+   * ใช้คอลัมน์นี้โดยตรงและต้องไม่มีชื่อเล่น
+   */
+  private stripNicknameSuffix(
+    displayName?: string | null,
+    nickname?: string | null,
+  ) {
+    const name = this.optionalTrim(displayName);
+    const nick = (nickname ?? '').trim();
+    if (!name || !nick) return name;
+    const suffix = ` (${nick})`;
+    return name.endsWith(suffix) ? name.slice(0, -suffix.length).trim() : name;
   }
 
   private optionalTrim(value?: string | null) {

@@ -546,6 +546,7 @@ export class TimeAdjustRequestsService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               title: true,
               firstName: true,
               lastName: true,
@@ -924,6 +925,7 @@ export class TimeAdjustRequestsService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -1057,6 +1059,7 @@ export class TimeAdjustRequestsService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               title: true,
               firstName: true,
               lastName: true,

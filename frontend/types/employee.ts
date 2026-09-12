@@ -93,6 +93,8 @@ export type EmployeeListItem = {
   lastName: string;
   nickname: string | null;
   displayName: string | null;
+  /** ชื่อดิบจาก backend ก่อนต่อชื่อเล่น (apiFetch ใส่ให้) — ฟอร์มแก้ไขต้องใช้ตัวนี้ */
+  displayNameRaw?: string | null;
   email: string | null;
   phone: string | null;
   position: string | null;

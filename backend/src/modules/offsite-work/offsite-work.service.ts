@@ -990,6 +990,7 @@ export class OffsiteWorkService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,

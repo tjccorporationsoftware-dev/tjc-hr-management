@@ -48,6 +48,7 @@ export class PayrollCalculationVerificationService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,

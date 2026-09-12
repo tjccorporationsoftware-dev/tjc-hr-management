@@ -774,6 +774,7 @@ export class ReportsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -908,6 +909,7 @@ export class ReportsService {
   private readonly REPORT_EMPLOYEE_SELECT = {
     id: true,
     employeeCode: true,
+    nickname: true,
     firstName: true,
     lastName: true,
     displayName: true,
@@ -1375,6 +1377,7 @@ export class ReportsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,

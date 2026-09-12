@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { employeeDisplayName } from "../../common/utils/employee-display-name.util";
 
 import {
   DocumentRequestStatus,
@@ -1184,12 +1185,10 @@ export class ApprovalsService {
     const employee = item.employee;
     if (!employee) return "ไม่พบข้อมูลพนักงาน";
 
-    return (
-      employee.displayName ||
-      `${employee.firstName ?? ""} ${employee.lastName ?? ""}`.trim() ||
-      employee.employeeCode ||
-      "ไม่ระบุชื่อ"
-    );
+    return employeeDisplayName(employee, {
+      includeTitle: false,
+      fallback: "ไม่ระบุชื่อ",
+    });
   }
 
   private hasApprovalAttachment(item: ApprovalItem) {

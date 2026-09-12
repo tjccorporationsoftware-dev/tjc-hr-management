@@ -201,6 +201,7 @@ export class CompanyDataService {
                   select: {
                     id: true,
                     employeeCode: true,
+                    nickname: true,
                     displayName: true,
                     firstName: true,
                     lastName: true,

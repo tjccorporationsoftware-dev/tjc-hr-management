@@ -21,6 +21,7 @@ export function employeeInclude() {
     select: {
       id: true,
       employeeCode: true,
+      nickname: true,
       title: true,
       firstName: true,
       lastName: true,
@@ -45,6 +46,7 @@ export function approvalStepInclude() {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,

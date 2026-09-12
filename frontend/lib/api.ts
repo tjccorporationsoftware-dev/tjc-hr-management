@@ -7,6 +7,7 @@ import {
   isAttendanceWorkflowMutation,
   notifyAttendanceWorkflowChanged,
 } from "./attendance-workflow-events";
+import { decorateEmployeeNames } from "./employee-nickname";
 import type { ApiResponse, ApiSuccessResponse } from "@/types/auth";
 import type {
   CreateEmployeeTransferPayload,
@@ -826,6 +827,9 @@ async function requestApi<T>(
       requestId: payload.requestId,
     });
   }
+
+  /* ต่อชื่อเล่นท้ายชื่อพนักงานให้ทุกหน้า — ดูเหตุผลใน lib/employee-nickname.ts */
+  decorateEmployeeNames(payload.data);
 
   if (isAttendanceWorkflowMutation(path, options.method)) {
     notifyAttendanceWorkflowChanged({

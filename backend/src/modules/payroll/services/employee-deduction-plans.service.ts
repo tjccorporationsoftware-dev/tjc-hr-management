@@ -50,6 +50,7 @@ export class EmployeeDeductionPlansService {
   private readonly employeeSelect = {
     id: true,
     employeeCode: true,
+    nickname: true,
     firstName: true,
     lastName: true,
     displayName: true,

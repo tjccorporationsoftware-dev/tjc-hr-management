@@ -1522,6 +1522,7 @@ export class DashboardService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             title: true,
             firstName: true,
             lastName: true,
@@ -1994,6 +1995,7 @@ export class DashboardService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,
@@ -3624,6 +3626,8 @@ export class DashboardService {
     return {
       id: true,
       employeeCode: true,
+
+      nickname: true,
       title: true,
       firstName: true,
       lastName: true,
@@ -3656,6 +3660,8 @@ export class DashboardService {
     return {
       id: true,
       employeeCode: true,
+
+      nickname: true,
       title: true,
       firstName: true,
       lastName: true,
@@ -4187,6 +4193,7 @@ export class DashboardService {
               firstName: true,
               lastName: true,
               displayName: true,
+              nickname: true,
             },
           },
           leaveType: {
@@ -4213,6 +4220,7 @@ export class DashboardService {
               firstName: true,
               lastName: true,
               displayName: true,
+              nickname: true,
             },
           },
         },

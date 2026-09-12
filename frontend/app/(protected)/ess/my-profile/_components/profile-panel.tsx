@@ -119,12 +119,13 @@ function personText(
 ) {
   if (!person) return "-";
 
+  /* displayName จาก API มีชื่อเล่นต่อท้ายแล้ว เอาก่อน ค่อยประกอบเองถ้าไม่มี */
   const name =
+    person.displayName ||
     [person.title, person.firstName, person.lastName]
       .map((part) => part?.trim())
       .filter(Boolean)
       .join(" ") ||
-    person.displayName ||
     "";
 
   const code = person.employeeCode?.trim();

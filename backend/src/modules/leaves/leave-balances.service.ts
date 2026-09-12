@@ -464,7 +464,7 @@ export class LeaveBalancesService {
 
     const employees = await this.prisma.employee.findMany({
       orderBy: { employeeCode: 'asc' },
-      select: { id: true, displayName: true, employeeCode: true },
+      select: { id: true, displayName: true, employeeCode: true, nickname: true },
       where,
     });
 
@@ -635,6 +635,7 @@ export class LeaveBalancesService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,

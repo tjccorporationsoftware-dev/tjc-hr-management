@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { employeeDisplayName } from "../../../common/utils/employee-display-name.util";
 import { PrismaService } from "../../../database/prisma.service";
 import {
   normalizeSalaryBasis,
@@ -58,15 +59,8 @@ type RunScope = {
 };
 
 function getEmployeeName(employee?: EmployeeLike | null) {
-  if (!employee) return "-";
-  return (
-    employee.displayName ||
-    [employee.title, employee.firstName, employee.lastName]
-      .filter(Boolean)
-      .join(" ") ||
-    employee.employeeCode ||
-    "-"
-  );
+  // หน้าจอ HR — ต่อชื่อเล่นให้เหมือนทุกหน้า
+  return employeeDisplayName(employee);
 }
 
 function getDepartmentName(employee?: EmployeeLike | null) {
@@ -413,6 +407,7 @@ export class PayrollReadinessService {
         employee: {
           select: {
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -761,6 +756,7 @@ export class PayrollReadinessService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -1020,6 +1016,7 @@ export class PayrollReadinessService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -1094,6 +1091,7 @@ export class PayrollReadinessService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -1130,6 +1128,7 @@ export class PayrollReadinessService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -1748,6 +1747,7 @@ export class PayrollReadinessService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,

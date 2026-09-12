@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getEmployeeName } from "@/components/ui/employee-name";
 import {
   CalendarRange,
   ChevronLeft,
@@ -154,11 +155,11 @@ function periodTitle(range: PayrollPeriodRange) {
 }
 
 function employeeName(employee: EmployeeListItem) {
-  const full = [employee.firstName, employee.lastName]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  return full || employee.employeeCode || "-";
+  /* หน้านี้ไม่เอาคำนำหน้า แต่ยังต้องมีชื่อเล่น — ใช้ตัวช่วยกลางที่ต่อชื่อเล่นให้ */
+  return getEmployeeName(
+    { ...employee, displayName: null },
+    { includeTitle: false },
+  );
 }
 
 /** เวลาในฐานข้อมูลเป็น UTC ต้องอ่านตามเวลาไทยเสมอ ไม่งั้นเช้าเป็นบ่าย */

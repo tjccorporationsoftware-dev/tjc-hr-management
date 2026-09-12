@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { employeeDisplayName } from '../../common/utils/employee-display-name.util';
 import type { Prisma } from '../../generated/prisma/client';
 import {
   EmployeeStatus,
@@ -1477,6 +1478,7 @@ export class PayrollService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               title: true,
               firstName: true,
               lastName: true,
@@ -2086,6 +2088,7 @@ export class PayrollService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -2482,6 +2485,7 @@ export class PayrollService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -2553,11 +2557,8 @@ export class PayrollService {
       });
     };
 
-    const getEmployeeName = (employee: any) =>
-      employee.displayName ||
-      [employee.title, employee.firstName, employee.lastName].filter(Boolean).join(' ') ||
-      employee.employeeCode ||
-      '-';
+    // หน้าจอ HR — ต่อชื่อเล่นให้เหมือนทุกหน้า (เอกสารทางการไม่ผ่านตรงนี้)
+    const getEmployeeName = (employee: any) => employeeDisplayName(employee);
 
     const employeeIds = run.items.map((item: any) => item.employeeId);
     const employeeItem = (item: any, detail: string, amount?: string | number | null) => ({
@@ -3605,6 +3606,7 @@ export class PayrollService {
               select: {
                 id: true,
                 employeeCode: true,
+                nickname: true,
                 title: true,
                 firstName: true,
                 lastName: true,
@@ -4195,6 +4197,7 @@ export class PayrollService {
         select: {
           id: true,
           employeeCode: true,
+          nickname: true,
           title: true,
           firstName: true,
           lastName: true,

@@ -543,6 +543,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -789,6 +790,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -1058,6 +1060,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -1602,6 +1605,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -2064,6 +2068,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -2178,6 +2183,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -2299,6 +2305,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -2400,6 +2407,7 @@ export class NotificationsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,
@@ -2489,6 +2497,7 @@ export class NotificationsService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         displayName: true,
@@ -2598,6 +2607,7 @@ export class NotificationsService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         displayName: true,
@@ -2813,6 +2823,7 @@ export class NotificationsService {
             select: {
               id: true,
               employeeCode: true,
+              nickname: true,
               firstName: true,
               lastName: true,
               displayName: true,
@@ -2896,6 +2907,7 @@ export class NotificationsService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         displayName: true,
@@ -4256,6 +4268,7 @@ export class NotificationsService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         displayName: true,

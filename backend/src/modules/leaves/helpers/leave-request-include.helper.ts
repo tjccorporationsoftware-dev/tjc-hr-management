@@ -13,6 +13,7 @@ export function buildLeaveRequestInclude() {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         title: true,
         firstName: true,
         lastName: true,
@@ -83,6 +84,7 @@ export function buildLeaveRequestInclude() {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             title: true,
             firstName: true,
             lastName: true,
@@ -142,6 +144,7 @@ export function buildLeaveRequestInclude() {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             title: true,
             firstName: true,
             lastName: true,

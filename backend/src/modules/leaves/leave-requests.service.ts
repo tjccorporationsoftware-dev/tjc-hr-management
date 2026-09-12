@@ -2246,6 +2246,7 @@ export class LeaveRequestsService {
           select: {
             id: true,
             employeeCode: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             displayName: true,

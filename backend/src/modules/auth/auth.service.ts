@@ -1174,7 +1174,7 @@ export class AuthService {
       where: { id: userId, deletedAt: null },
       include: {
         employee: {
-          select: { employeeCode: true, firstName: true, lastName: true },
+          select: { employeeCode: true, nickname: true, firstName: true, lastName: true },
         },
       },
     });

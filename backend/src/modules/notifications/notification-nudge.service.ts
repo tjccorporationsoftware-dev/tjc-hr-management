@@ -188,6 +188,7 @@ export class NotificationNudgeService {
         employee: {
           select: {
             displayName: true,
+            nickname: true,
             firstName: true,
             lastName: true,
             supervisor: { select: { id: true, userId: true } },

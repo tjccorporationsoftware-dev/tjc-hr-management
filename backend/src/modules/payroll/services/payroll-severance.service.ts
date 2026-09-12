@@ -104,6 +104,7 @@ export class PayrollSeveranceService {
       select: {
         id: true,
         employeeCode: true,
+        nickname: true,
         firstName: true,
         lastName: true,
         companyId: true,
