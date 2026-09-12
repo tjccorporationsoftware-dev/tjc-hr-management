@@ -155,7 +155,12 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto, context: RequestContext) {
-    const identifier = (dto.username ?? dto.email ?? '').trim();
+    /*
+     * ต้องใช้ || ไม่ใช่ ?? — DTO ตั้งค่าเริ่มต้น username = '' ไว้ พอแอปรุ่นเก่า
+     * ส่งมาแค่ email ตัว username จึงเป็นสตริงว่าง ไม่ใช่ undefined แล้ว ?? จะไม่
+     * ตกไปหา email ทำให้แอปเก่าล็อกอินไม่ได้ทั้งบริษัท (เกิดจริง 2569-09-11)
+     */
+    const identifier = dto.username?.trim() || dto.email?.trim() || '';
 
     const user = await this.findUserForAuthByIdentifier(identifier);
 
