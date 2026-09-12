@@ -427,10 +427,10 @@ export function TodayPanel() {
                         size="sm"
                       />
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                        <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                           {getEmployeeName(member.employee)}
                         </p>
-                        <p className="truncate text-[11.5px] text-slate-400 3xl:text-[12.5px]">
+                        <p className="break-words text-[11.5px] text-slate-400 3xl:text-[12.5px]">
                           {member.shift?.name ||
                             member.employee.positionMaster?.nameTh ||
                             member.employee.employeeCode}

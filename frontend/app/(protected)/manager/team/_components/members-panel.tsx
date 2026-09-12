@@ -337,10 +337,10 @@ export function TeamMembersPanel() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-semibold text-slate-900">
+                    <p className="break-words text-[13px] font-semibold text-slate-900">
                       {getEmployeeName(member.employee)}
                     </p>
-                    <p className="truncate text-[11.5px] text-slate-400">
+                    <p className="break-words text-[11.5px] text-slate-400">
                       ครบกำหนด{" "}
                       {member.employee.probationEndDate
                         ? formatThaiDate(member.employee.probationEndDate)

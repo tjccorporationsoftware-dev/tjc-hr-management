@@ -849,7 +849,8 @@ export function AttendancePolicyPanel({
       if (!keyword) return true;
       return (
         row.employeeCode.toLowerCase().includes(keyword) ||
-        `${row.firstName} ${row.lastName}`.toLowerCase().includes(keyword)
+        `${row.firstName} ${row.lastName}`.toLowerCase().includes(keyword) ||
+        (row.nickname ?? "").toLowerCase().includes(keyword)
       );
     });
 

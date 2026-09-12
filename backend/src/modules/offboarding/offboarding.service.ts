@@ -226,6 +226,7 @@ export class OffboardingService {
         { employeeCode: { contains: query.q, mode: 'insensitive' } },
         { firstName: { contains: query.q, mode: 'insensitive' } },
         { lastName: { contains: query.q, mode: 'insensitive' } },
+        { nickname: { contains: query.q, mode: 'insensitive' } },
         { displayName: { contains: query.q, mode: 'insensitive' } },
       ];
     }

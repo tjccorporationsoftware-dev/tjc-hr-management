@@ -963,10 +963,10 @@ export default function HrDashboardPage() {
                             tone="soft"
                           />
                           <div className="min-w-0">
-                            <p className="truncate text-[12px] font-semibold text-slate-900 3xl:text-[12.5px]">
+                            <p className="break-words text-[12px] font-semibold text-slate-900 3xl:text-[12.5px]">
                               {getEmployeeName(item.employee)}
                             </p>
-                            <p className="truncate text-[10.5px] text-slate-400 3xl:text-[11px]">
+                            <p className="break-words text-[10.5px] text-slate-400 3xl:text-[11px]">
                               {employeeMeta(item.employee)}
                             </p>
                           </div>
@@ -1479,10 +1479,10 @@ export default function HrDashboardPage() {
                       {sourceTypeLabel(item.sourceType)}
                     </Badge>
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                      <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                         {getEmployeeName(item.employee)}
                       </p>
-                      <p className="truncate text-[11.5px] text-slate-400 3xl:text-[12.5px]">
+                      <p className="break-words text-[11.5px] text-slate-400 3xl:text-[12.5px]">
                         {item.title || item.requestNo || "-"}
                       </p>
                     </div>
@@ -1541,10 +1541,10 @@ export default function HrDashboardPage() {
                       className="inline-block w-11 shrink-0 text-[12.5px] font-semibold text-slate-500 3xl:text-[13.5px]"
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                      <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                         {getEmployeeName(log.employee)}
                       </p>
-                      <p className="truncate text-[11.5px] text-slate-400 3xl:text-[12.5px]">
+                      <p className="break-words text-[11.5px] text-slate-400 3xl:text-[12.5px]">
                         {employeeMeta(log.employee)}
                       </p>
                     </div>

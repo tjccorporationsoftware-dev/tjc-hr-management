@@ -126,6 +126,12 @@ export class UsersService {
                         },
                       },
                       {
+                        nickname: {
+                          contains: q,
+                          mode: "insensitive",
+                        },
+                      },
+                      {
                         displayName: {
                           contains: q,
                           mode: "insensitive",

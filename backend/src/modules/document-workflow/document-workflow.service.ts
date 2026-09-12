@@ -670,6 +670,14 @@ export class DocumentWorkflowService {
           },
         },
         {
+          employee: {
+            nickname: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
           documentType: {
             nameTh: {
               contains: search,
@@ -1838,6 +1846,14 @@ export class DocumentWorkflowService {
         {
           employee: {
             lastName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          employee: {
+            nickname: {
               contains: search,
               mode: 'insensitive',
             },

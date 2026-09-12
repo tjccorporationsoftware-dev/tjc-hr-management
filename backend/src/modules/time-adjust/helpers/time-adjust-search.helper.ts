@@ -196,6 +196,14 @@ function addSearchFilter(
       },
       {
         employee: {
+          nickname: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      },
+      {
+        employee: {
           displayName: {
             contains: search,
             mode: 'insensitive',

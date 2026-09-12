@@ -133,10 +133,10 @@ function TransferRow({
       <div className="flex min-w-[15rem] flex-1 items-center gap-3">
         <Avatar name={personName(row.employee)} size="md" />
         <div className="min-w-0">
-          <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+          <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
             {personName(row.employee)}
           </p>
-          <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+          <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
             {[row.employee.employeeCode, row.employee.position]
               .filter(Boolean)
               .join(" · ") || "-"}
@@ -187,7 +187,7 @@ function TransferRow({
           vocabulary={EMPLOYEE_TRANSFER_STATUS}
           status={row.status}
         />
-        <p className="mt-0.5 truncate text-[11px] text-slate-400 3xl:text-[11.5px]">
+        <p className="mt-0.5 break-words text-[11px] text-slate-400 3xl:text-[11.5px]">
           {row.createdBy?.displayName ?? "-"} · {dateText(row.createdAt)}
         </p>
       </div>

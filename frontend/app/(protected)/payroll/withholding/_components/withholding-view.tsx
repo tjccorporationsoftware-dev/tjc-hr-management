@@ -176,7 +176,7 @@ function PayeeRow({
 
       <div className="min-w-[12rem] flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+          <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
             {row.name}
           </p>
           <span className="inline-flex shrink-0 items-center rounded-full bg-brand-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-brand-700">

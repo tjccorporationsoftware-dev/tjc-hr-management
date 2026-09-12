@@ -99,7 +99,7 @@ export function HrEmployeeMiniCard({
           {name.slice(0, 1)}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-slate-900">
+          <p className="break-words text-sm font-semibold text-slate-900">
             {name}
           </p>
           <p className="mt-1 text-xs text-slate-500">

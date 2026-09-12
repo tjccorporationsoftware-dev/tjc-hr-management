@@ -965,7 +965,7 @@ function RequestCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="truncate text-[14.5px] font-bold text-slate-900 3xl:text-[15.5px]">
+            <p className="break-words text-[14.5px] font-bold text-slate-900 3xl:text-[15.5px]">
               {personName(item.employee)}
             </p>
             <span

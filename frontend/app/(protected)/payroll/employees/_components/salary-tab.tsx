@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Plus, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, Lock, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -50,6 +51,11 @@ import { PayrollItemNameInput } from "./payroll-item-name-input";
  * -------------------------
  * ฐานเงินเดือนมีได้ชุดเดียวที่ใช้งานอยู่ ส่วนรายการประจำ (ค่าตำแหน่ง ค่าเดินทาง
  * หักที่จอดรถ ฯลฯ) มีได้หลายรายการและเข้าทุกงวดจนกว่าจะลบ
+ *
+ * แก้ตัวเลขตรงนี้ได้เฉพาะ "ตั้งค่าครั้งแรก" (คนที่ยังไม่มีฐานเงินเดือน)
+ * พอมีฐานแล้ว เงินเดือนและรายการประจำล็อกเป็นอ่านอย่างเดียว ต้องไปทำผ่าน
+ * รอบปรับค่าจ้าง (/payroll/employees/rounds) ที่บันทึกชื่อรอบ วันที่มีผล และตัวเลขก่อน/หลัง
+ * ธนาคาร / หักภาษี / ประกันสังคม ยังแก้ได้ตามปกติ เพราะไม่ใช่จำนวนเงิน
  */
 
 /** หัวข้อย่อยในแท็บ — ป้ายฟ้าคั่นด้วยเส้นบาง แทนหัวข้อเทาตัวใหญ่ */
@@ -91,11 +97,14 @@ function TabSection({
 function RecurringRow({
   row,
   busy,
+  locked,
   onToggle,
   onDelete,
 }: {
   row: EmployeeCompensationItem;
   busy: boolean;
+  /** มีฐานเงินเดือนแล้ว — ลบ/แก้จำนวนต้องผ่านรอบปรับ */
+  locked: boolean;
   onToggle: (
     field: "isTaxable" | "isSocialSecurityBase",
     value: boolean,
@@ -108,7 +117,7 @@ function RecurringRow({
     <article className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5">
       <div className="min-w-[11rem] flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="truncate text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
+          <p className="break-words text-[13px] font-bold text-slate-900 3xl:text-[13.5px]">
             {row.name}
           </p>
           <Badge tone={deduction ? "critical" : "positive"}>
@@ -171,17 +180,23 @@ function RecurringRow({
       </p>
 
       <div className="flex w-9 shrink-0 justify-end">
-        <IconButton
-          title="ลบรายการ"
-          tone="danger"
-          size="sm"
-          icon={<Trash2 className="h-4 w-4" />}
-          /*
-           * ต้องถามก่อนลบ — รายการนี้เข้าทุกงวดจนกว่าจะลบ
-           * กดพลาดหนึ่งครั้งคือเงินเพิ่ม/รายการหักหายจากงวดถัดไปทันที
-           */
-          onClick={onDelete}
-        />
+        {locked ? (
+          <span title="แก้/ลบผ่านรอบปรับค่าจ้าง" className="text-slate-300">
+            <Lock className="h-4 w-4" />
+          </span>
+        ) : (
+          <IconButton
+            title="ลบรายการ"
+            tone="danger"
+            size="sm"
+            icon={<Trash2 className="h-4 w-4" />}
+            /*
+             * ต้องถามก่อนลบ — รายการนี้เข้าทุกงวดจนกว่าจะลบ
+             * กดพลาดหนึ่งครั้งคือเงินเพิ่ม/รายการหักหายจากงวดถัดไปทันที
+             */
+            onClick={onDelete}
+          />
+        )}
       </div>
     </article>
   );
@@ -261,6 +276,8 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
   );
   const [items, setItems] = useState<EmployeeCompensationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  /** มีฐานเงินเดือนแล้ว → ตัวเลขเงินเดือน/รายการประจำอ่านอย่างเดียว ต้องผ่านรอบปรับ */
+  const locked = Boolean(compensation);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<SalaryForm>(emptySalaryForm);
 
@@ -391,22 +408,26 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
 
     setSaving(true);
     try {
-      const payload = {
-        effectiveDate: form.effectiveDate,
-        baseSalary: form.baseSalary,
-        salaryBasis: form.salaryBasis,
+      const bankAndFlags = {
         bankName: form.bankName || undefined,
         bankAccountNo: form.bankAccountNo || undefined,
         taxEnabled: form.taxEnabled,
         socialSecurityEnabled: form.socialSecurityEnabled,
       };
 
+      /*
+       * มีฐานแล้ว = ส่งแค่ธนาคาร/ธง ตัวเลขเงินเดือนไม่ไปด้วยแม้ช่องจะโชว์อยู่
+       * เพราะการเปลี่ยนเงินเดือนต้องผ่านรอบปรับเท่านั้น
+       */
       const saved = compensation
-        ? await updateEmployeeCompensation(compensation.id, payload)
+        ? await updateEmployeeCompensation(compensation.id, bankAndFlags)
         : await createEmployeeCompensation({
             companyId,
             employeeId,
-            ...payload,
+            effectiveDate: form.effectiveDate,
+            baseSalary: form.baseSalary,
+            salaryBasis: form.salaryBasis,
+            ...bankAndFlags,
           });
 
       setCompensation(saved);
@@ -496,14 +517,35 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
         </Notice>
       ) : null}
 
+      {locked ? (
+        <div className="px-5 pt-4 3xl:px-6">
+          <Notice tone="info" icon={<Lock className="h-4 w-4" />}>
+            เงินเดือนและรายการประจำของคนที่ตั้งค่าแล้ว แก้ผ่าน{" "}
+            <Link
+              href="/payroll/employees/rounds"
+              className="font-semibold text-brand-700 underline-offset-2 hover:underline"
+            >
+              รอบปรับค่าจ้าง
+            </Link>{" "}
+            เท่านั้น — จะได้มีชื่อรอบ วันที่มีผล และตัวเลขก่อน/หลังเก็บไว้ทุกครั้ง
+            ธนาคารกับการหักภาษี/ประกันสังคมยังแก้ตรงนี้ได้
+          </Notice>
+        </div>
+      ) : null}
+
       <TabSection
         title="เงินเดือนและบัญชีรับเงิน"
-        description={'เงินเพิ่มประจำอื่น ๆ ให้เพิ่มที่ "รายการประจำ" ด้านล่าง'}
+        description={
+          locked
+            ? "ตัวเลขเงินเดือนอ่านอย่างเดียว — เปลี่ยนได้ผ่านรอบปรับค่าจ้าง"
+            : 'เงินเพิ่มประจำอื่น ๆ ให้เพิ่มที่ "รายการประจำ" ด้านล่าง'
+        }
       >
         <FieldGrid columns={3}>
           <Field label="ฐานค่าจ้าง" hint={basisOption.hint}>
             <Select
               value={form.salaryBasis}
+              disabled={locked}
               onChange={(event) =>
                 setForm((f) => ({
                   ...f,
@@ -518,9 +560,10 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
               ))}
             </Select>
           </Field>
-          <Field label={basisOption.amountLabel} required>
+          <Field label={basisOption.amountLabel} required={!locked}>
             <MoneyInput
               value={form.baseSalary}
+              disabled={locked}
               onChange={(event) =>
                 setForm((f) => ({ ...f, baseSalary: event.target.value }))
               }
@@ -532,6 +575,7 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
             <TextInput
               type="date"
               value={form.effectiveDate}
+              disabled={locked}
               onChange={(event) =>
                 setForm((f) => ({ ...f, effectiveDate: event.target.value }))
               }
@@ -597,13 +641,23 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
         title="รายการประจำ"
         description="เงินเพิ่มและรายการหักที่เข้าทุกงวดจนกว่าจะลบ เช่น ค่าตำแหน่ง ค่าเดินทาง ค่าโทรศัพท์"
         actions={
-          <Button
-            size="sm"
-            icon={<Plus className="h-3.5 w-3.5" />}
-            onClick={() => setItemModalOpen(true)}
-          >
-            เพิ่มรายการ
-          </Button>
+          locked ? (
+            <Link
+              href="/payroll/employees/rounds"
+              className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-700 underline-offset-2 hover:underline"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              เพิ่ม/แก้ผ่านรอบปรับ
+            </Link>
+          ) : (
+            <Button
+              size="sm"
+              icon={<Plus className="h-3.5 w-3.5" />}
+              onClick={() => setItemModalOpen(true)}
+            >
+              เพิ่มรายการ
+            </Button>
+          )
         }
       >
         {/*
@@ -630,6 +684,7 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
               <RecurringRow
                 key={row.id}
                 row={row}
+                locked={locked}
                 busy={togglingItemId === row.id}
                 onToggle={(field, value) =>
                   void toggleItemFlag(row, field, value)
@@ -696,7 +751,7 @@ export function SalaryTab({ companyId, employeeId, onSaved }: Props) {
             loading={saving}
             disabled={loading}
           >
-            บันทึกเงินเดือน
+            {locked ? "บันทึกบัญชี / การหัก" : "บันทึกเงินเดือน"}
           </Button>
         </div>
       </div>

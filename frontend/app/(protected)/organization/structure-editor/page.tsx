@@ -1465,7 +1465,7 @@ function StructureEditorWorkspace() {
                     />
 
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-slate-900">
+                      <span className="block break-words text-[13px] font-semibold text-slate-900">
                         {nameOf(employee)}
                       </span>
                       <span className="block truncate text-[11px] text-slate-400">
@@ -1829,7 +1829,7 @@ function PersonCard({
 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
-          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+          <span className="min-w-0 flex-1 break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
             {name}
           </span>
           {changed ? (

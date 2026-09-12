@@ -735,6 +735,12 @@ export class AttendanceService {
             },
           },
           {
+            nickname: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
             displayName: {
               contains: search,
               mode: "insensitive",
@@ -3004,6 +3010,7 @@ export class AttendanceService {
         { employeeCode: { contains: search, mode: "insensitive" } },
         { firstName: { contains: search, mode: "insensitive" } },
         { lastName: { contains: search, mode: "insensitive" } },
+        { nickname: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -4451,6 +4458,7 @@ export class AttendanceService {
         e."employeeCode" ILIKE ${searchPattern}
         OR e."firstName" ILIKE ${searchPattern}
         OR e."lastName" ILIKE ${searchPattern}
+        OR COALESCE(e."nickname", '') ILIKE ${searchPattern}
         OR COALESCE(e."displayName", '') ILIKE ${searchPattern}
       )`);
     }
@@ -7523,6 +7531,7 @@ export class AttendanceService {
         { employeeCode: { contains: search, mode: "insensitive" } },
         { firstName: { contains: search, mode: "insensitive" } },
         { lastName: { contains: search, mode: "insensitive" } },
+        { nickname: { contains: search, mode: "insensitive" } },
         { displayName: { contains: search, mode: "insensitive" } },
       ];
     }

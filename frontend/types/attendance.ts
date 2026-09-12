@@ -1436,6 +1436,7 @@ export type EmployeeShiftRow = {
   title?: string | null;
   firstName: string;
   lastName: string;
+  nickname?: string | null;
   branchId?: string | null;
   employeeTypeId?: string | null;
   branch?: { id: string; code?: string | null; nameTh: string } | null;

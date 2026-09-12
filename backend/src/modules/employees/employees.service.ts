@@ -126,6 +126,12 @@ export class EmployeesService {
             },
           },
           {
+            nickname: {
+              contains: query.q,
+              mode: 'insensitive',
+            },
+          },
+          {
             displayName: {
               contains: query.q,
               mode: 'insensitive',

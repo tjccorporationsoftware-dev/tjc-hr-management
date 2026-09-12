@@ -369,7 +369,7 @@ export function LeaveQuotaPanel() {
         <div className="flex min-w-0 items-center gap-3">
           <Avatar name={row.name} size="lg" />
           <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
+            <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
               {row.name}
             </p>
             <p className="truncate text-[12px] text-slate-400 3xl:text-[13px]">
@@ -650,7 +650,7 @@ export function LeaveQuotaPanel() {
             <div className="flex items-center gap-3 border-b border-brand-100 bg-brand-50/50 px-5 py-3">
               <Avatar name={openRow.name} size="md" />
               <div className="min-w-0">
-                <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+                <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
                   {openRow.name}
                 </p>
                 <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">

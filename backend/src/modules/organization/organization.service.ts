@@ -514,6 +514,7 @@ export class OrganizationService {
               { employeeCode: { contains: keyword, mode: 'insensitive' as const } },
               { firstName: { contains: keyword, mode: 'insensitive' as const } },
               { lastName: { contains: keyword, mode: 'insensitive' as const } },
+              { nickname: { contains: keyword, mode: 'insensitive' as const } },
               { displayName: { contains: keyword, mode: 'insensitive' as const } },
               { position: { contains: keyword, mode: 'insensitive' as const } },
               { email: { contains: keyword, mode: 'insensitive' as const } },
@@ -532,6 +533,7 @@ export class OrganizationService {
               { supervisor: { employeeCode: { contains: keyword, mode: 'insensitive' as const } } },
               { supervisor: { firstName: { contains: keyword, mode: 'insensitive' as const } } },
               { supervisor: { lastName: { contains: keyword, mode: 'insensitive' as const } } },
+              { supervisor: { nickname: { contains: keyword, mode: 'insensitive' as const } } },
               { supervisor: { displayName: { contains: keyword, mode: 'insensitive' as const } } },
             ],
           }

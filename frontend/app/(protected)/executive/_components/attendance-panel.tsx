@@ -348,7 +348,7 @@ export function AttendancePanel() {
                       <div className="flex min-w-0 items-center gap-2.5">
                         <Avatar name={row.name} size="sm" tone="soft" />
                         <div className="min-w-0">
-                          <p className="truncate text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
+                          <p className="break-words text-[13px] font-semibold text-slate-900 3xl:text-[14px]">
                             {row.name}
                           </p>
                           <p className="truncate text-[11.5px] text-slate-400 3xl:text-[12.5px]">

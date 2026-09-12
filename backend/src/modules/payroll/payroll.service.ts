@@ -1439,6 +1439,11 @@ export class PayrollService {
           },
         },
         {
+          employee: {
+            nickname: { contains: q, mode: 'insensitive' },
+          },
+        },
+        {
           bankAccountName: { contains: q, mode: 'insensitive' },
         },
         {
@@ -3994,6 +3999,14 @@ export class PayrollService {
         {
           employee: {
             lastName: {
+              contains: q,
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          employee: {
+            nickname: {
               contains: q,
               mode: "insensitive",
             },

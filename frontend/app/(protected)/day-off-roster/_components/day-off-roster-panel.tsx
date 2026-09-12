@@ -862,7 +862,7 @@ export function DayOffRosterPanel() {
                     <tr key={row.employee.id} className="group/row">
                       <td className="sticky left-0 z-10 border-b border-r border-slate-100 bg-white px-3 py-1 group-hover/row:bg-brand-50/60">
                         <span className="flex min-w-0 items-baseline gap-2">
-                          <span className="truncate font-semibold text-slate-800">
+                          <span className="break-words font-semibold text-slate-800">
                             {employeeName(row.employee)}
                           </span>
                           <span className="shrink-0 text-[11px] tabular-nums text-slate-400">

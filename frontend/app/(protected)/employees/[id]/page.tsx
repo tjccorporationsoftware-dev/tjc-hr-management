@@ -523,7 +523,10 @@ export default function EmployeeDetailPage() {
       lastName: employee.lastName,
       nickname: employee.nickname ?? "",
       // ต้องเป็นชื่อดิบ ไม่ใช่ตัวที่ต่อชื่อเล่นไว้แล้ว ไม่งั้นบันทึกแล้วชื่อเล่นฝังเข้าไปในชื่อจริง
-      displayName: employee.displayNameRaw ?? employee.displayName ?? "",
+      displayName:
+        "displayNameRaw" in employee
+          ? (employee.displayNameRaw ?? "")
+          : (employee.displayName ?? ""),
       email: employee.email ?? "",
       phone: employee.phone ?? "",
       position: employee.position ?? employee.positionMaster?.nameTh ?? "",

@@ -145,7 +145,7 @@ function ResultRow({
         <Avatar name={employeeName(item.employee)} size="md" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+            <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
               {employeeName(item.employee)}
             </p>
             {item.probationRecordId ? (
@@ -172,7 +172,7 @@ function ResultRow({
           ผู้ประเมิน
         </p>
         {item.evaluatorEmployee ? (
-          <p className="truncate text-[12.5px] font-semibold text-slate-800 3xl:text-[13px]">
+          <p className="break-words text-[12.5px] font-semibold text-slate-800 3xl:text-[13px]">
             {employeeName(item.evaluatorEmployee)}
           </p>
         ) : (
@@ -653,7 +653,7 @@ function ResultDetail({ result }: { result: EvaluationResult }) {
           <Avatar name={employeeName(result.employee)} size="md" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+              <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
                 {employeeName(result.employee)}
               </p>
               <Badge tone={resultStatusTone(result.status)}>

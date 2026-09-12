@@ -166,7 +166,7 @@ export function PendingRequestsPanel({
                     {row.employeeName}
                   </p>
                 )}
-                <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+                <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
                   {row.employeeCode ?? "-"}
                   {row.departmentName ? ` · ${row.departmentName}` : ""}
                 </p>

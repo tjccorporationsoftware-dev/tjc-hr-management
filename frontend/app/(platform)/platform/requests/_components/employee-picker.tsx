@@ -100,10 +100,10 @@ export function EmployeePicker({
             <UserRound className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-bold text-slate-900">
+            <div className="break-words text-sm font-bold text-slate-900">
               {employeeName(value)}
             </div>
-            <div className="truncate text-[11px] text-slate-500">
+            <div className="break-words text-[11px] text-slate-500">
               {value.employeeCode}
               {value.department?.nameTh ? ` · ${value.department.nameTh}` : ""}
               {value.branch?.nameTh ? ` · ${value.branch.nameTh}` : ""}
@@ -189,10 +189,10 @@ export function EmployeePicker({
                   {employee.employeeCode?.slice(-3) || "—"}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-slate-800">
+                  <span className="block break-words text-sm font-semibold text-slate-800">
                     {employeeName(employee)}
                   </span>
-                  <span className="block truncate text-[11px] text-slate-500">
+                  <span className="block break-words text-[11px] text-slate-500">
                     {employee.employeeCode}
                     {employee.department?.nameTh
                       ? ` · ${employee.department.nameTh}`

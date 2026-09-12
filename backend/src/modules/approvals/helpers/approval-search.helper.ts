@@ -144,6 +144,12 @@ function buildEmployeeSearchWhere(search: string): Prisma.EmployeeWhereInput {
         },
       },
       {
+        nickname: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      },
+      {
         displayName: {
           contains: search,
           mode: 'insensitive',

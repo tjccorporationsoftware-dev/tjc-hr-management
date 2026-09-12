@@ -770,10 +770,10 @@ export function AttendanceMethodsPanel({
                   </span>
 
                   <div className="min-w-[12rem] flex-1">
-                    <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+                    <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
                       {employeeName(employee)}
                     </p>
-                    <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+                    <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
                       {[
                         employee.employeeCode,
                         employee.branch?.nameTh ?? "ทุกสาขา",

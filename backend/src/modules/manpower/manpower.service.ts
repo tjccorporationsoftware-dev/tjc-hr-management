@@ -421,6 +421,7 @@ export class ManpowerService {
               { employeeCode: { contains: q, mode: 'insensitive' } },
               { firstName: { contains: q, mode: 'insensitive' } },
               { lastName: { contains: q, mode: 'insensitive' } },
+              { nickname: { contains: q, mode: 'insensitive' } },
               { displayName: { contains: q, mode: 'insensitive' } },
               { email: { contains: q, mode: 'insensitive' } },
               { phone: { contains: q, mode: 'insensitive' } },

@@ -2210,10 +2210,10 @@ function DetailModal({
             size="md"
           />
           <div className="min-w-0">
-            <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+            <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
               {employeeName(detail)}
             </p>
-            <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+            <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
               {[
                 detail.employee.employeeCode,
                 employeeDepartmentPosition(detail.employee),
@@ -4873,11 +4873,11 @@ export default function HrReviewPage() {
                           <div className="flex items-center gap-3">
                             <EmployeeAvatar item={item} />
                             <div className="min-w-0">
-                              <p className="truncate text-[13.5px] font-bold leading-5 text-slate-950 3xl:text-[14.5px]">
+                              <p className="break-words text-[13.5px] font-bold leading-5 text-slate-950 3xl:text-[14.5px]">
                                 {employeeName(item)}
                               </p>
                               <p
-                                className="truncate text-[11.5px] leading-5 text-slate-500 3xl:text-[12px]"
+                                className="break-words text-[11.5px] leading-5 text-slate-500 3xl:text-[12px]"
                                 title={[
                                   item.employee.employeeCode,
                                   employeeDepartmentPosition(item.employee),

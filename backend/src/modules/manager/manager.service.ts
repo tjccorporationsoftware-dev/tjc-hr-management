@@ -1901,6 +1901,7 @@ export class ManagerService {
         { employeeCode: { contains: keyword, mode: 'insensitive' as const } },
         { firstName: { contains: keyword, mode: 'insensitive' as const } },
         { lastName: { contains: keyword, mode: 'insensitive' as const } },
+        { nickname: { contains: keyword, mode: 'insensitive' as const } },
         { displayName: { contains: keyword, mode: 'insensitive' as const } },
         { email: { contains: keyword, mode: 'insensitive' as const } },
         { phone: { contains: keyword, mode: 'insensitive' as const } },
@@ -1920,6 +1921,7 @@ export class ManagerService {
           { employeeCode: { contains: keyword, mode: 'insensitive' as const } },
           { firstName: { contains: keyword, mode: 'insensitive' as const } },
           { lastName: { contains: keyword, mode: 'insensitive' as const } },
+          { nickname: { contains: keyword, mode: 'insensitive' as const } },
           { displayName: { contains: keyword, mode: 'insensitive' as const } },
           { position: { contains: keyword, mode: 'insensitive' as const } },
         ],
@@ -1949,6 +1951,11 @@ export class ManagerService {
         {
           employee: {
             lastName: { contains: keyword, mode: 'insensitive' as const },
+          },
+        },
+        {
+          employee: {
+            nickname: { contains: keyword, mode: 'insensitive' as const },
           },
         },
         {
@@ -1982,6 +1989,11 @@ export class ManagerService {
         {
           employee: {
             lastName: { contains: keyword, mode: 'insensitive' as const },
+          },
+        },
+        {
+          employee: {
+            nickname: { contains: keyword, mode: 'insensitive' as const },
           },
         },
       ],
@@ -2031,6 +2043,11 @@ export class ManagerService {
         {
           employee: {
             lastName: { contains: keyword, mode: 'insensitive' as const },
+          },
+        },
+        {
+          employee: {
+            nickname: { contains: keyword, mode: 'insensitive' as const },
           },
         },
         {

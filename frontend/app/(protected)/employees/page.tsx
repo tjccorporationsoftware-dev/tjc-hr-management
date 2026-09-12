@@ -581,10 +581,10 @@ export default function EmployeesPage() {
             size="lg"
           />
           <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
+            <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
               {employeeName(employee)}
             </p>
-            <p className="truncate text-[11px] text-slate-400 3xl:text-[12px] 4xl:text-[12.5px]">
+            <p className="break-words text-[11px] text-slate-400 3xl:text-[12px] 4xl:text-[12.5px]">
               <span className="tabular-nums">{employee.employeeCode}</span>
               {employee.email || employee.phone ? (
                 <>
@@ -639,7 +639,7 @@ export default function EmployeesPage() {
       hideBelow: "xl",
       cell: (employee) =>
         employee.supervisor ? (
-          <span className="truncate">
+          <span className="break-words">
             {supervisorName(employee.supervisor)}
           </span>
         ) : (

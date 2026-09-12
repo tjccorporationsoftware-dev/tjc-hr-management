@@ -19,10 +19,15 @@ const MAX_DEPTH = 12;
 
 type EmployeeLike = {
   employeeCode?: unknown;
+  title?: unknown;
+  firstName?: unknown;
+  lastName?: unknown;
   displayName?: unknown;
   nickname?: unknown;
   displayNameRaw?: unknown;
 };
+
+const str = (value: unknown) => (typeof value === "string" ? value.trim() : "");
 
 /** ชื่อที่โชว์ = ชื่อดิบ + " (ชื่อเล่น)" ถ้ามีชื่อเล่นและยังไม่ได้ต่อไว้ */
 export function withNickname(
@@ -41,11 +46,22 @@ export function withNickname(
  * ไม่บังคับ employeeCode เพราะบาง select ดึงมาแค่ชื่อ เช่น กล่องแจ้งเตือน/แดชบอร์ด
  */
 function looksLikeEmployee(value: EmployeeLike) {
+  if (str(value.nickname) === "") return false;
+  /* displayName อาจว่างได้ (มี 2 คนที่หลุดมาว่าง) — ถ้ามีชื่อ/สกุลให้ประกอบเองแทน */
   return (
-    typeof value.displayName === "string" &&
-    typeof value.nickname === "string" &&
-    value.nickname.trim() !== ""
+    typeof value.displayName === "string" ||
+    str(value.firstName) !== "" ||
+    str(value.lastName) !== ""
   );
+}
+
+/** ชื่อดิบ: displayName ถ้ามี ไม่งั้นประกอบ คำนำหน้า ชื่อ สกุล */
+function rawName(value: EmployeeLike) {
+  const display = str(value.displayName);
+  if (display) return display;
+  return [str(value.title), str(value.firstName), str(value.lastName)]
+    .filter(Boolean)
+    .join(" ");
 }
 
 /**
@@ -62,9 +78,12 @@ export function decorateEmployeeNames<T>(value: T, depth = 0): T {
 
   const record = value as Record<string, unknown>;
   if (looksLikeEmployee(record as EmployeeLike)) {
-    const raw = record.displayName as string;
-    if (record.displayNameRaw === undefined) record.displayNameRaw = raw;
-    record.displayName = withNickname(raw, record.nickname as string);
+    const raw = rawName(record as EmployeeLike);
+    /* เก็บค่าเดิมของคอลัมน์ไว้เสมอ (อาจเป็น null) ฟอร์มแก้ไขต้องได้ค่านี้ ไม่ใช่ตัวที่ต่อแล้ว */
+    if (record.displayNameRaw === undefined) {
+      record.displayNameRaw = (record.displayName as string | null | undefined) ?? null;
+    }
+    if (raw) record.displayName = withNickname(raw, record.nickname as string);
   }
 
   for (const key of Object.keys(record)) {

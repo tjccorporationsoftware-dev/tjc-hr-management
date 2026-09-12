@@ -1792,7 +1792,7 @@ function RuleRow({
         </p>
 
         {mode === "people" ? (
-          <p className="mt-0.5 truncate text-[11px] text-slate-500">
+          <p className="mt-0.5 break-words text-[11px] text-slate-500">
             {getRequesterNames(matrix)}
           </p>
         ) : mode === "branch" ? (

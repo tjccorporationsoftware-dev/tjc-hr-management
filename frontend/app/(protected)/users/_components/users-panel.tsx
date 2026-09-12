@@ -626,7 +626,7 @@ export function UsersPanel({
         <div className="flex min-w-0 items-center gap-3">
           <Avatar name={getUserDisplayName(user)} size="lg" />
           <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
+            <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px] 4xl:text-[15px]">
               {getUserDisplayName(user)}
             </p>
             <p className="truncate text-[12px] text-brand-600 3xl:text-[13px]">

@@ -1671,10 +1671,10 @@ function RequestRow({
         <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-brand-400">
           ผู้ขอ
         </p>
-        <p className="truncate text-[12.5px] font-semibold text-slate-800 3xl:text-[13px]">
+        <p className="break-words text-[12.5px] font-semibold text-slate-800 3xl:text-[13px]">
           {getEmployeeName(item.employee)}
         </p>
-        <p className="truncate text-[11px] text-slate-400 3xl:text-[11.5px]">
+        <p className="break-words text-[11px] text-slate-400 3xl:text-[11.5px]">
           {formatOrgUnit(item)}
         </p>
       </div>

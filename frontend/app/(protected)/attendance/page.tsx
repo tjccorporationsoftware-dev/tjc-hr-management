@@ -1959,10 +1959,10 @@ function AttendanceLocationDialog({
       <div className="-mx-5 -mt-5 mb-4 flex items-center gap-3 border-b border-slate-200 px-5 pb-3.5">
         <Avatar name={employeeName} src={avatarUrl} size="lg" />
         <div className="min-w-0">
-          <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+          <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
             {employeeName}
           </p>
-          <p className="truncate text-[11px] text-slate-400 3xl:text-[12px]">
+          <p className="break-words text-[11px] text-slate-400 3xl:text-[12px]">
             {orgLabel}
           </p>
         </div>
@@ -2199,10 +2199,10 @@ function AttendanceDetailDialog({
           />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+            <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
               {employeeName(item)}
             </p>
-            <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+            <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
               {item.employee?.employeeCode || "-"} · {orgText(item)}
             </p>
           </div>
@@ -3475,10 +3475,10 @@ export default function AttendanceDailyPage() {
             size="lg"
           />
           <div className="min-w-0">
-            <p className="truncate text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
+            <p className="break-words text-[13.5px] font-bold text-slate-900 3xl:text-[14.5px]">
               {employeeName(item)}
             </p>
-            <p className="truncate text-[11px] text-slate-400 3xl:text-[12px]">
+            <p className="break-words text-[11px] text-slate-400 3xl:text-[12px]">
               {item.employee?.employeeCode || "-"} · {orgText(item)}
             </p>
           </div>

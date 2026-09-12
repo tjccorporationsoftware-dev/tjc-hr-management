@@ -255,10 +255,10 @@ export function ItemDetailModal({
           <Avatar name={employeeName} size="md" />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-bold text-slate-900 3xl:text-[15px]">
+            <p className="break-words text-[14px] font-bold text-slate-900 3xl:text-[15px]">
               {employeeName}
             </p>
-            <p className="truncate text-[11.5px] text-slate-500 3xl:text-[12px]">
+            <p className="break-words text-[11.5px] text-slate-500 3xl:text-[12px]">
               {[
                 item.employee.employeeCode,
                 item.departmentName,

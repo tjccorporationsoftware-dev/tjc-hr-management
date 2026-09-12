@@ -94,7 +94,9 @@ describe('applyScopeToAuditWhere', () => {
  */
 describe('purgeLogs', () => {
   function buildPurgeService() {
-    const deleteMany = jest.fn(() => Promise.resolve({ count: 3 }));
+    const deleteMany = jest.fn((_args: { where: Record<string, unknown> }) =>
+      Promise.resolve({ count: 3 }),
+    );
     const service = new AuditService({
       auditLog: { deleteMany },
     } as never);
@@ -111,7 +113,7 @@ describe('purgeLogs', () => {
       branchId: null,
     });
 
-    const where = deleteMany.mock.calls[0][0].where as {
+    const where = deleteMany.mock.calls[0]![0].where as {
       companyId: string;
       createdAt: { lt: Date };
     };
@@ -131,7 +133,7 @@ describe('purgeLogs', () => {
       branchId: null,
     });
 
-    const where = deleteMany.mock.calls[0][0].where as {
+    const where = deleteMany.mock.calls[0]![0].where as {
       companyId: string;
       createdAt: { lt: Date };
     };
@@ -148,6 +150,6 @@ describe('purgeLogs', () => {
       branchId: null,
     });
 
-    expect(deleteMany.mock.calls[0][0].where).not.toHaveProperty('companyId');
+    expect(deleteMany.mock.calls[0]![0].where).not.toHaveProperty('companyId');
   });
 });

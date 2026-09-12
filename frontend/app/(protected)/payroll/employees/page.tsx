@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Banknote,
   Building2,
+  ClipboardList,
   Pencil,
   Users,
   X,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import {
   Avatar,
   Button,
+  ButtonLink,
   CellStack,
   DataTable,
   PageChip,
@@ -40,6 +42,7 @@ import {
 } from "@/lib/payroll-extensions-api";
 import {
   count,
+  dateText,
   dedupeTaxYears,
   errorText,
   money,
@@ -77,10 +80,16 @@ import { scrollPagerToTop } from "@/lib/scroll-to-top";
  * หน้าหลักเป็นตารางอย่างเดียว กวาดตาหาคนที่ยังไม่ตั้งค่าได้เร็ว
  * ส่วนฟอร์มทั้งหมด (รายได้ประจำ / ลดหย่อนภาษี / หนี้ผ่อนชำระ) อยู่ในป๊อปอัพ
  * เพราะเป็นงานที่ทำทีละคน ไม่ต้องแบ่งจอค้างไว้ตลอดเวลา
+ *
+ * ป๊อปอัพตั้งเงินเดือนได้เฉพาะครั้งแรก — คนที่มีค่าจ้างแล้วต้องแก้ผ่าน
+ * "รอบปรับค่าจ้าง" (/payroll/employees/rounds) ที่เก็บชื่อรอบ วันที่มีผล ตัวเลขก่อน/หลัง
  */
 
 /** จำนวนคนต่อหน้า — พอดีหนึ่งหน้าจอโดยไม่ต้องเลื่อนยาว */
 const PAGE_SIZE = 30;
+
+/** วันนี้ (เวลาไทย) ไว้เทียบว่าฐานเงินเดือนชุดล่าสุดมีผลแล้วหรือยัง */
+const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
 
 function employeeName(employee: PayrollEmployee) {
   return (
@@ -492,11 +501,19 @@ export default function PayrollEmployeesPage() {
         const compensation = compensationByEmployee[employee.id];
 
         return compensation ? (
-          <span className="font-semibold text-slate-900">
-            {money(compensation.baseSalary)}
-            {basisSuffix(compensation) ? (
-              <span className="ml-0.5 text-[11px] font-medium text-slate-500">
-                {basisSuffix(compensation)}
+          <span className="inline-flex flex-col items-end">
+            <span className="font-semibold text-slate-900">
+              {money(compensation.baseSalary)}
+              {basisSuffix(compensation) ? (
+                <span className="ml-0.5 text-[11px] font-medium text-slate-500">
+                  {basisSuffix(compensation)}
+                </span>
+              ) : null}
+            </span>
+            {/* ชุดที่รอบปรับตั้งไว้ล่วงหน้า — ให้รู้ว่าตัวเลขนี้ยังไม่ใช่ของงวดปัจจุบัน */}
+            {compensation.effectiveDate.slice(0, 10) > todayKey ? (
+              <span className="text-[10.5px] font-medium text-amber-600">
+                มีผล {dateText(compensation.effectiveDate)}
               </span>
             ) : null}
           </span>
@@ -632,7 +649,7 @@ export default function PayrollEmployeesPage() {
             setEditingEmployeeId(employee.id);
           }}
         >
-          ตั้งค่า
+          {compensationByEmployee[employee.id] ? "ดู / บัญชี" : "ตั้งค่า"}
         </Button>
       ),
     },
@@ -670,6 +687,16 @@ export default function PayrollEmployeesPage() {
         }
         actions={
           <>
+            {/* ปุ่มหลักของหน้า — ทุกการเปลี่ยนเงินเดือนหลังตั้งค่าครั้งแรกเริ่มจากตรงนี้ */}
+            <div className="flex justify-end">
+              <ButtonLink
+                href="/payroll/employees/rounds"
+                variant="primary"
+                icon={<ClipboardList className="h-4 w-4" />}
+              >
+                รอบปรับค่าจ้าง
+              </ButtonLink>
+            </div>
             <div className="grid grid-cols-2 divide-x divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white sm:grid-cols-[repeat(3,minmax(10.5rem,max-content))] sm:divide-y-0">
               <StatTile
                 icon={<BadgeCheck className="h-4 w-4" />}

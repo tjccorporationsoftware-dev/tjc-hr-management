@@ -542,6 +542,14 @@ export class LeaveRequestsService {
           },
         },
         {
+          employee: {
+            nickname: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
           leaveType: {
             code: {
               contains: search,

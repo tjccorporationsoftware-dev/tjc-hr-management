@@ -841,6 +841,7 @@ export class HrReviewService {
               { employeeCode: { contains: search, mode: 'insensitive' } },
               { firstName: { contains: search, mode: 'insensitive' } },
               { lastName: { contains: search, mode: 'insensitive' } },
+              { nickname: { contains: search, mode: 'insensitive' } },
               { displayName: { contains: search, mode: 'insensitive' } },
             ],
           }

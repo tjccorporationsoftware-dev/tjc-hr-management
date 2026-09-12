@@ -121,6 +121,7 @@ export class PayrollTaxService {
         { employee: { employeeCode: { contains: q, mode: 'insensitive' } } },
         { employee: { firstName: { contains: q, mode: 'insensitive' } } },
         { employee: { lastName: { contains: q, mode: 'insensitive' } } },
+        { employee: { nickname: { contains: q, mode: 'insensitive' } } },
         { employee: { displayName: { contains: q, mode: 'insensitive' } } },
       ];
     }
@@ -562,6 +563,7 @@ export class PayrollTaxService {
         { employee: { employeeCode: { contains: q, mode: 'insensitive' } } },
         { employee: { firstName: { contains: q, mode: 'insensitive' } } },
         { employee: { lastName: { contains: q, mode: 'insensitive' } } },
+        { employee: { nickname: { contains: q, mode: 'insensitive' } } },
         { employee: { displayName: { contains: q, mode: 'insensitive' } } },
       ];
     }
