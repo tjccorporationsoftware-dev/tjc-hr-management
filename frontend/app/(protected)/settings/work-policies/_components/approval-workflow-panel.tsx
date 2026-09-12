@@ -2519,6 +2519,7 @@ function RequesterPicker({
   const [keyword, setKeyword] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("");
+  const [showAllSelected, setShowAllSelected] = useState(false);
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   /* เลือกสาขาแล้วเหลือเฉพาะแผนกของสาขานั้น (แผนกระดับบริษัทยังอยู่ครบ) */
@@ -2641,6 +2642,38 @@ function RequesterPicker({
     );
   }
 
+  /*
+    ติ๊กทั้งสาขา/ทั้งแผนกในคลิกเดียว — คนที่ถูกเส้นอื่นจองไว้ไม่นับ เพราะติ๊กให้ก็ไม่ติด
+    ถ้าทุกคนในกลุ่มถูกเลือกอยู่แล้ว การติ๊กซ้ำคือเอาออกทั้งกลุ่ม
+    ทำงานกับ "รายชื่อที่กรองแล้ว" — พิมพ์ค้นหาแล้วติ๊กสาขา จะได้เฉพาะคนที่เห็นอยู่ ไม่ใช่ทั้งสาขาจริง
+  */
+  function selectableIds(group: EmployeeOption[]) {
+    return group
+      .filter((employee) => !takenByOtherLine.has(employee.id))
+      .map((employee) => employee.id);
+  }
+
+  function groupState(group: EmployeeOption[]) {
+    const ids = selectableIds(group);
+    const picked = ids.filter((id) => selected.has(id)).length;
+    return {
+      ids,
+      all: ids.length > 0 && picked === ids.length,
+      some: picked > 0 && picked < ids.length,
+    };
+  }
+
+  function toggleGroup(group: EmployeeOption[]) {
+    const { ids, all } = groupState(group);
+    if (ids.length === 0) return;
+
+    onChange(
+      all
+        ? selectedIds.filter((id) => !ids.includes(id))
+        : [...selectedIds, ...ids.filter((id) => !selected.has(id))],
+    );
+  }
+
   return (
     <div className={cn("min-w-0", className)}>
       {/*
@@ -2718,32 +2751,51 @@ function RequesterPicker({
       </div>
 
       {/* รายชื่อที่เลือกไว้ ยกมาไว้บนสุด จะได้ไม่ต้องเลื่อนหาในรายการยาว ๆ */}
+      {/*
+        ป้ายใช้รหัสสาขาแทนชื่อเต็ม และพับเมื่อเกิน 12 คน — ตอนติ๊กทั้งสาขาทีเดียว 30 คน
+        ป้ายชื่อเต็มจะกินทั้งจอจนรายชื่อด้านล่างตกขอบ ต้องเลื่อนหาอีก
+      */}
       {selectedIds.length > 0 ? (
         <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {selectedIds.map((employeeId) => {
-            const employee = employees.find((item) => item.id === employeeId);
+          {(showAllSelected ? selectedIds : selectedIds.slice(0, 12)).map(
+            (employeeId) => {
+              const employee = employees.find((item) => item.id === employeeId);
+              const branch = employee
+                ? branches.find((item) => item.id === employee.branchId)
+                : undefined;
 
-            return (
-              <button
-                key={employeeId}
-                type="button"
-                onClick={() => toggle(employeeId)}
-                className="inline-flex items-center gap-1 rounded-full bg-brand-600 py-0.5 pl-2 pr-1.5 text-[11px] font-bold text-white transition hover:bg-brand-700"
-              >
-                {employee ? getDisplayName(employee) : employeeId}
-                {employee && getEmployeeBranchName(employee, branches) ? (
-                  <span className="font-medium text-brand-100">
-                    · {getEmployeeBranchName(employee, branches)}
-                  </span>
-                ) : null}
-                <X className="h-3 w-3" />
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={employeeId}
+                  type="button"
+                  onClick={() => toggle(employeeId)}
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-600 py-0.5 pl-2 pr-1.5 text-[11px] font-bold text-white transition hover:bg-brand-700"
+                >
+                  {employee ? getDisplayName(employee) : employeeId}
+                  {branch?.code ? (
+                    <span className="font-medium text-brand-100">· {branch.code}</span>
+                  ) : null}
+                  <X className="h-3 w-3" />
+                </button>
+              );
+            },
+          )}
+          {selectedIds.length > 12 ? (
+            <button
+              type="button"
+              onClick={() => setShowAllSelected((value) => !value)}
+              className="inline-flex items-center rounded-full border border-brand-300 px-2 py-0.5 text-[11px] font-bold text-brand-700 hover:bg-brand-50"
+            >
+              {showAllSelected
+                ? "ย่อรายชื่อ"
+                : `และอีก ${selectedIds.length - 12} คน`}
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+      {/* กล่องสูงตามจอ — เดิม 256px เห็นแค่ 4-5 คน ต้องเลื่อนตลอด */}
+      <div className="mt-2 max-h-[62vh] min-h-[22rem] overflow-y-auto rounded-lg border border-slate-200 bg-white">
         {filtered.length === 0 ? (
           <p className="px-3 py-6 text-center text-xs font-semibold text-slate-400">
             ไม่พบพนักงานที่ตรงกับเงื่อนไข
@@ -2752,26 +2804,46 @@ function RequesterPicker({
           groupedRows.map((branchGroup) => (
             <div key={branchGroup.key}>
               {/* ชั้นนอก = สาขา แถบฟ้าทึบเต็มความกว้าง เหมือนหัวกลุ่มในตารางของระบบ */}
-              <div className="border-y border-brand-200 bg-brand-100/80 px-3 py-2">
-                <AttendanceGroupHeading
-                  level="branch"
-                  title={branchGroup.title}
-                  code={branchGroup.code}
-                  employeeCount={branchGroup.count}
+              <label className="flex cursor-pointer items-center gap-2.5 border-y border-brand-200 bg-brand-100/80 px-3 py-2 hover:bg-brand-100">
+                <GroupCheckbox
+                  title="เลือกทั้งสาขา"
+                  state={groupState(
+                    branchGroup.departments.flatMap((group) => group.employees),
+                  )}
+                  onToggle={() =>
+                    toggleGroup(
+                      branchGroup.departments.flatMap((group) => group.employees),
+                    )
+                  }
                 />
-              </div>
+                <span className="min-w-0 flex-1">
+                  <AttendanceGroupHeading
+                    level="branch"
+                    title={branchGroup.title}
+                    code={branchGroup.code}
+                    employeeCount={branchGroup.count}
+                  />
+                </span>
+              </label>
 
               {branchGroup.departments.map((departmentGroup) => (
                 <div key={departmentGroup.key}>
                   {/* ชั้นใน = แผนก พื้นขาวเยื้องเข้ามา */}
-                  <div className="border-b border-brand-100 bg-white py-1.5 pl-6 pr-3">
-                    <AttendanceGroupHeading
-                      level="department"
-                      title={departmentGroup.title}
-                      code={departmentGroup.code}
-                      employeeCount={departmentGroup.employees.length}
+                  <label className="flex cursor-pointer items-center gap-2.5 border-b border-brand-100 bg-white py-1.5 pl-6 pr-3 hover:bg-brand-50/60">
+                    <GroupCheckbox
+                      title="เลือกทั้งแผนก"
+                      state={groupState(departmentGroup.employees)}
+                      onToggle={() => toggleGroup(departmentGroup.employees)}
                     />
-                  </div>
+                    <span className="min-w-0 flex-1">
+                      <AttendanceGroupHeading
+                        level="department"
+                        title={departmentGroup.title}
+                        code={departmentGroup.code}
+                        employeeCount={departmentGroup.employees.length}
+                      />
+                    </span>
+                  </label>
 
                   {departmentGroup.employees.map((employee) => {
                     const takenLine = takenByOtherLine.get(employee.id);
@@ -2780,7 +2852,7 @@ function RequesterPicker({
                       <label
                         key={employee.id}
                         className={cn(
-                          "flex items-center gap-2.5 border-b border-slate-100 py-2 pl-6 pr-3 transition last:border-b-0",
+                          "flex items-center gap-2.5 border-b border-slate-100 py-2 pl-12 pr-3 transition last:border-b-0",
                           takenLine
                             ? "cursor-not-allowed bg-slate-50/80"
                             : "cursor-pointer hover:bg-brand-50/60",
@@ -2825,6 +2897,36 @@ function RequesterPicker({
         )}
       </div>
     </div>
+  );
+}
+
+/** ช่องติ๊กของหัวกลุ่ม — ขีดกลางเมื่อเลือกไว้บางคน */
+function GroupCheckbox({
+  title,
+  state,
+  onToggle,
+}: {
+  title: string;
+  state: { ids: string[]; all: boolean; some: boolean };
+  onToggle: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = state.some;
+  }, [state.some]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      title={title}
+      aria-label={title}
+      checked={state.all}
+      disabled={state.ids.length === 0}
+      onChange={onToggle}
+      className="h-4 w-4 shrink-0 rounded border-brand-300 text-brand-600 disabled:opacity-40"
+    />
   );
 }
 
